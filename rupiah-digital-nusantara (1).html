@@ -1,0 +1,2576 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rupiah Digital Nusantara (RDN) - Standalone Offline Prototype</title>
+  
+  <!-- Inter & Space Grotesk & JetBrains Mono Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Alpine.js Core for perfect offline reactivity -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    /* Premium Glass UI Themes - Matching modern banking apps */
+    .glass {
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(0, 82, 156, 0.15);
+      box-shadow: 0 20px 40px -15px rgba(0, 50, 120, 0.08), 0 0 40px 0 rgba(239, 68, 68, 0.01);
+      color: #0f172a;
+    }
+
+    .glass-pill {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(0, 82, 156, 0.12);
+    }
+
+    .glass-hover {
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .glass-hover:hover {
+      background: rgba(255, 255, 255, 1);
+      border-color: rgba(239, 68, 68, 0.45);
+      transform: translateY(-3px) scale(1.01);
+      box-shadow: 0 15px 35px rgba(0, 50, 120, 0.12), 0 0 20px rgba(239, 68, 68, 0.08);
+    }
+
+    .glass-hover:active {
+      transform: translateY(0) scale(1);
+    }
+
+    /* Animated background network mesh */
+    .mesh-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100/vh;
+      min-height: 100%;
+      z-index: -1;
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(0, 75, 147, 0.07) 0%, transparent 50%),
+        radial-gradient(circle at 85% 85%, rgba(239, 68, 68, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 50% 20%, rgba(0, 100, 200, 0.03) 0%, transparent 45%),
+        radial-gradient(circle at 80% 15%, rgba(255, 255, 255, 0.9) 0%, transparent 45%),
+        linear-gradient(rgba(0, 75, 147, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 75, 147, 0.015) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 45px 45px, 45px 45px;
+      background-color: #f4f7fa;
+    }
+
+    /* Force button color rules */
+    .bg-red-600, .bg-red-500 {
+      color: #ffffff !important;
+    }
+    .bg-red-600 *, .bg-red-500 * {
+      color: #ffffff !important;
+    }
+
+    /* Custom scrollbars */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Fast Fade-In animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fadeIn {
+      animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  </style>
+
+  <script>
+    // Config standard Tailwind colours to match index.css custom theme
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Space Grotesk', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            slate: {
+              950: '#ffffff',      /* Pure white background */
+              900: '#f8fafc',      /* Clean off-white bg */
+              800: '#f1f5f9',      /* Smooth light gray details */
+              700: '#e2e8f0',      
+              600: '#cbd5e1',      
+              500: '#64748b',      /* Balanced primary details */
+              400: '#475569',      /* Muted gray description text */
+              300: '#334155',      /* Highly readable layout letters */
+              200: '#1e293b',      /* Title slate highlights */
+              100: '#0f172a',      /* Bold black titles */
+              50: '#f8fafc',       
+            }
+          }
+        }
+      }
+    }
+  </script>
+<script src="/_aistudio-iframe.js"></script></head>
+<body class="min-h-screen text-slate-900 font-sans overflow-x-hidden p-2 sm:p-4 md:p-6 lg:p-8 flex flex-col justify-between"
+      x-data="rdnApp()" x-init="initApp()">
+  
+  <!-- Mesh Backdrop Grid -->
+  <div class="mesh-bg"></div>
+
+  <!-- Main Grid Frame Frame -->
+  <div class="w-full max-w-6xl mx-auto glass rounded-3xl min-h-[720px] flex flex-col md:flex-row overflow-hidden border border-white/10 shadow-2xl relative">
+    
+    <!-- LEFT SIDEBAR SYSTEM -->
+    <aside x-show="showSidebar" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-x-12" x-transition:enter-end="opacity-100 translate-x-0"
+           class="w-full md:w-64 glass border-b md:border-b-0 md:border-r border-white/5 flex flex-col p-5 space-y-6 shrink-0 z-10 animate-fadeIn">
+      
+      <!-- Brand Logo Header -->
+      <div class="flex items-center justify-between px-2 py-1">
+        <div class="flex items-center gap-2">
+          <!-- Golden Coin RDN -->
+          <div class="relative w-8 h-8 rounded-full bg-gradient-to-b from-amber-300 via-yellow-400 to-amber-600 flex items-center justify-center border border-amber-200/60 shadow-lg shadow-yellow-500/25 shrink-0 select-none animate-pulse">
+            <!-- Inner double border for coin aesthetic -->
+            <div class="absolute inset-[2px] rounded-full border border-dashed border-amber-100/50"></div>
+            <!-- Currency Symbol -->
+            <span class="text-[9px] font-black text-amber-950 font-display mt-[0.5px] select-none">Rp</span>
+            <!-- Shiny sheen overlay -->
+            <div class="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-white/30 to-transparent pointer-events-none"></div>
+          </div>
+
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-red-600 via-red-500 to-white flex items-center justify-center font-bold text-slate-950 shadow-md shadow-red-500/15 relative overflow-hidden shrink-0">
+            <span class="absolute inset-0 bg-white/10"></span>
+            <span class="relative z-10 text-red-950 font-extrabold text-sm">R</span>
+          </div>
+          <div>
+            <span class="text-sm font-extrabold tracking-tight text-red-600 block leading-none font-display">RDN Mobile</span>
+            <span class="text-[9px] text-red-400 uppercase tracking-widest font-bold block leading-none mt-1">Offline Core v1.4</span>
+          </div>
+        </div>
+
+        <!-- Collapse Toggle -->
+        <button @click="showSidebar = false; refreshIcons()" class="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200/40 cursor-pointer flex items-center justify-center shadow-sm">
+          <i data-lucide="chevron-left" class="w-4 h-4 text-red-600"></i>
+        </button>
+      </div>
+
+      <!-- Live Node Status Details -->
+      <div class="px-3 py-2 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between text-xs">
+        <div class="flex items-center gap-2">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+          </span>
+          <span class="text-slate-300 font-medium font-sans">Node Lokal Aktif</span>
+        </div>
+        <span class="px-1.5 py-0.5 rounded text-[8px] bg-red-500/10 text-red-600 font-extrabold border border-red-500/20">
+          LEDGER SECURE
+        </span>
+      </div>
+
+      <!-- Navigation Menus -->
+      <nav class="space-y-1.5 flex-1">
+        <button @click="navigateTo(1)"
+                :class="currentScreen === 1 ? 'bg-red-500/10 text-red-600 border-red-500/35 shadow-[0_0_15px_rgba(239,68,68,0.12)] font-bold' : 'text-slate-400 hover:text-slate-100 hover:bg-white/5 border-transparent'"
+                class="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs rounded-xl border transition-all cursor-pointer">
+          <i data-lucide="home" class="w-4 h-4"></i>
+          <span>Beranda</span>
+        </button>
+
+        <button @click="navigateTo(14)"
+                :class="currentScreen === 14 ? 'bg-red-500/10 text-red-600 border-red-500/35 shadow-[0_0_15px_rgba(239,68,68,0.12)] font-bold' : 'text-slate-400 hover:text-slate-100 hover:bg-white/5 border-transparent'"
+                class="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs rounded-xl border transition-all cursor-pointer">
+          <i data-lucide="qr-code" class="w-4 h-4"></i>
+          <span class="flex items-center gap-1.5">
+            Pindai & Bayar
+            <span class="w-1.5 h-1.5 rounded-full bg-red-505 animate-pulse"></span>
+          </span>
+        </button>
+
+        <button @click="navigateTo(15)"
+                :class="currentScreen === 15 ? 'bg-red-500/10 text-red-600 border-red-500/35 shadow-[0_0_15px_rgba(239,68,68,0.12)] font-bold' : 'text-slate-400 hover:text-slate-100 hover:bg-white/5 border-transparent'"
+                class="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs rounded-xl border transition-all cursor-pointer">
+          <i data-lucide="send" class="w-4 h-4"></i>
+          <span>Transfer Saldo</span>
+        </button>
+
+        <button @click="navigateTo(16)"
+                :class="currentScreen === 16 ? 'bg-red-500/10 text-red-600 border-red-500/35 shadow-[0_0_15px_rgba(239,68,68,0.12)] font-bold' : 'text-slate-400 hover:text-slate-100 hover:bg-white/5 border-transparent'"
+                class="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs rounded-xl border transition-all cursor-pointer">
+          <i data-lucide="download" class="w-4 h-4"></i>
+          <span>Terima Saldo</span>
+        </button>
+
+        <button @click="navigateTo(5)"
+                :class="[5,6,7].includes(currentScreen) ? 'bg-red-500/10 text-red-600 border-red-500/35 shadow-[0_0_15px_rgba(239,68,68,0.12)] font-bold' : 'text-slate-400 hover:text-slate-100 hover:bg-white/5 border-transparent'"
+                class="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs rounded-xl border transition-all cursor-pointer">
+          <i data-lucide="history" class="w-4 h-4"></i>
+          <span>Transaksi Offline</span>
+        </button>
+
+        <button @click="navigateTo(8)"
+                :class="[8,9,10].includes(currentScreen) ? 'bg-red-500/10 text-red-600 border-red-500/35 shadow-[0_0_15px_rgba(239,68,68,0.12)] font-bold' : 'text-slate-400 hover:text-slate-100 hover:bg-white/5 border-transparent'"
+                class="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs rounded-xl border transition-all cursor-pointer">
+          <i data-lucide="shield" class="w-4 h-4"></i>
+          <span>Keamanan Server</span>
+        </button>
+
+        <button @click="navigateTo(11)"
+                :class="[11,12,13].includes(currentScreen) ? 'bg-red-500/10 text-red-600 border-red-500/35 shadow-[0_0_15px_rgba(239,68,68,0.12)] font-bold' : 'text-slate-400 hover:text-slate-100 hover:bg-white/5 border-transparent'"
+                class="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs rounded-xl border transition-all cursor-pointer">
+          <i data-lucide="user-check" class="w-4 h-4"></i>
+          <span>Identitas Biometrik</span>
+        </button>
+
+        <button @click="navigateTo(4)"
+                :class="currentScreen === 4 ? 'bg-red-500/10 text-red-600 border-red-500/35 font-bold' : 'text-slate-400 hover:text-slate-100 hover:bg-white/5 border-transparent'"
+                class="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs rounded-xl border transition-all cursor-pointer">
+          <i data-lucide="help-circle" class="w-4 h-4"></i>
+          <span>Panduan Fitur</span>
+        </button>
+
+        <button @click="navigateTo(17)"
+                :class="currentScreen === 17 ? 'bg-red-500/10 text-red-600 border-red-500/35 shadow-[0_0_15px_rgba(239,68,68,0.12)] font-bold' : 'text-slate-400 hover:text-slate-100 hover:bg-white/5 border-transparent'"
+                class="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs rounded-xl border transition-all cursor-pointer">
+          <i data-lucide="life-buoy" class="w-4 h-4"></i>
+          <span class="flex items-center gap-2 w-full justify-between">
+            <span>Customer Service</span>
+            <span class="px-1.5 py-0.5 text-[8px] bg-red-500/20 text-red-400 rounded-full font-bold animate-pulse border border-red-500/30">24/7</span>
+          </span>
+        </button>
+      </nav>
+
+      <!-- Ledger Lock Info Card -->
+      <div class="p-3.5 rounded-2xl bg-red-500/5 border border-red-500/15 text-[11px] text-slate-400 animate-fadeIn mt-auto leading-relaxed">
+        <div class="flex items-center justify-between mb-1 text-slate-200">
+          <span class="font-bold text-red-600 block">Status Node:</span>
+          <span class="font-extrabold text-[10px] text-slate-400">AKTIF / OK</span>
+        </div>
+        <p class="text-[10px]">
+          Hardwarelocked ledger terikat ke sistem Android / Cloud Run secure key enclaves.
+        </p>
+        <div class="mt-3 pt-2 border-t border-red-500/10 flex justify-between items-center text-[9px] text-slate-400">
+          <span>Alat Pengontrol:</span>
+          <button
+            type="button"
+            @click="isDeveloperPanelHidden = !isDeveloperPanelHidden; refreshIcons()"
+            class="text-red-500 hover:text-red-600 hover:underline cursor-pointer font-bold bg-transparent border-none p-0 inline-flex"
+            x-text="isDeveloperPanelHidden ? '[Tampilkan]' : '[Sembunyikan]'"
+          >
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN INTERACTIVE WORKSPACE -->
+    <main class="flex-1 flex flex-col overflow-hidden bg-slate-950/20 backdrop-blur-md relative">
+      
+      <!-- MAIN WORKSPACE HEADER -->
+      <header class="h-20 shrink-0 flex items-center justify-between px-6 md:px-10 border-b border-white/5">
+        <div class="flex items-center gap-4">
+          <!-- Hamburger menu trigger -->
+          <button x-show="!showSidebar" @click="showSidebar = true; refreshIcons()"
+                  x-transition:enter="transition duration-150" x-transition:enter-start="scale-50 opacity-0"
+                  class="p-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white shadow-md shadow-red-500/15 cursor-pointer flex items-center gap-2 border border-red-500/10 font-bold text-xs">
+            <i data-lucide="menu" class="w-4 h-4 text-white"></i>
+            <span class="hidden sm:inline">Menu Utama</span>
+          </button>
+          
+          <div>
+            <div class="text-[9px] uppercase font-extrabold tracking-widest text-red-500 font-mono">
+              STANDALONE PROTOTIPE • LAYAR <span x-text="currentScreen"></span> DARI 14
+            </div>
+            <h1 class="text-base md:text-lg font-bold tracking-tight text-slate-100" x-text="screenNames[currentScreen - 1]"></h1>
+          </div>
+        </div>
+
+        <!-- Right Side Brand & User Profile Info -->
+        <div class="flex items-center gap-4">
+          <div class="text-right hidden sm:block">
+            <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Saldo Rupiah Digital</span>
+            <span class="text-sm font-extrabold text-red-600 font-mono" x-text="formatRupiah(offlineBalance)"></span>
+          </div>
+
+          <div @click="navigateTo(12)" class="w-10 h-10 rounded-full border border-red-500/50 p-0.5 cursor-pointer hover:scale-105 transition-transform" title="JUNAIDI ROTI Profil">
+            <img class="w-full h-full rounded-full bg-slate-100" src="https://api.dicebear.com/7.x/avataaars/svg?seed=RDN" alt="Avatar JUNAIDI ROTI">
+          </div>
+        </div>
+      </header>
+
+      <!-- ACTIVE SCREEN RENDERING CONTROLLER -->
+      <div class="flex-1 p-6 md:p-10 overflow-y-auto no-scrollbar">
+
+        <!-- SCREEN 1: HOMEPAGE BERANDA RESMI -->
+        <div x-show="currentScreen === 1" class="animate-fadeIn space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            
+            <div class="lg:col-span-7 space-y-5">
+              <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-400/10 text-red-600 text-[10px] font-bold border border-red-500/20 uppercase tracking-widest">
+                🛡️ Rupiah Digital Nusantara
+              </span>
+              <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight font-display text-slate-100 leading-tight">
+                Amankan Finansial Anda Dengan Transaksi Offline RDN
+              </h2>
+              <p class="text-sm text-slate-400 leading-relaxed font-sans">
+                Dana berpindah instan lewat modul peer-to-peer terenkripsi, aman tersimpan pada secure hardware chip handphone Anda secara penuh, bebas gangguan koneksi internet.
+              </p>
+
+              <div class="flex flex-wrap items-center gap-3">
+                <button @click="navigateTo(2)" class="px-5 py-2.5 rounded-xl glass border border-white/10 text-xs font-bold hover:bg-white/5 transition-colors cursor-pointer">
+                  Tentang Aplikasi RDN
+                </button>
+                <button @click="navigateTo(11)" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 text-white text-xs font-extrabold shadow-lg shadow-red-500/20 hover:scale-[1.02] flex items-center gap-2 transition-all cursor-pointer border border-red-400/20">
+                  <span>Mulai Registrasi Wajah</span>
+                  <i data-lucide="arrow-right" class="w-4 h-4 text-white"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Features Banner Box -->
+            <div class="lg:col-span-5 glass p-6 rounded-2xl border border-white/5 relative overflow-hidden flex flex-col justify-between space-y-5">
+              <div class="absolute -right-16 -top-16 w-36 h-36 rounded-full bg-red-500/10 blur-xl"></div>
+              
+              <div class="space-y-4">
+                <div class="flex gap-4 items-start">
+                  <div class="w-8 h-8 rounded-lg bg-red-500/10 text-red-600 flex items-center justify-center shrink-0">
+                    <i data-lucide="wifi-off" class="w-4 h-4"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-extrabold text-sm text-slate-100">100% Offline P2P</h4>
+                    <p class="text-[11px] text-slate-400 leading-relaxed">Transaksi instan lancar di daerah blank spot, pasar bawah tanah, atau masa bencana.</p>
+                  </div>
+                </div>
+
+                <div class="flex gap-4 items-start">
+                  <div class="w-8 h-8 rounded-lg bg-red-500/10 text-red-600 flex items-center justify-center shrink-0">
+                    <i data-lucide="laptop" class="w-4 h-4"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-extrabold text-sm text-slate-100">Simpan Enklosur Secure</h4>
+                    <p class="text-[11px] text-slate-400 leading-relaxed">Sandi rahasia dilindungi enkripsi AES-256 standard bank global berlisensi.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-red-500/10 rounded-xl p-3 border border-red-500/20 text-[10px] text-red-600 flex items-center gap-2">
+                <i data-lucide="info" class="w-4 h-4 text-red-600 shrink-0"></i>
+                <span>Saldo awal didaftarkan sebesar 4,25 Juta Rupiah.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SCREEN 2: SELAMAT DATANG DI RDN -->
+        <div x-show="currentScreen === 2" class="animate-fadeIn space-y-6 max-w-3xl mx-auto">
+          <div class="text-center space-y-3">
+            <div class="w-12 h-12 rounded-full bg-red-500/10 text-red-600 flex items-center justify-center mx-auto shadow-md">
+              <i data-lucide="zap" class="w-6 h-6"></i>
+            </div>
+            <h2 class="text-2xl font-extrabold text-slate-100 font-display">Selamat Datang di RDN Offline (Rupiah Digital Nusantara)</h2>
+            <p class="text-sm text-slate-400 leading-relaxed">
+              Selamat datang di era baru kedaulatan finansial digital. RDN Offline dirancang khusus untuk memenuhi kebutuhan sirkulasi transaksi tunai non-internet secara mandiri dengan tingkat proteksi tingkat tinggi.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="glass p-5 rounded-xl border border-white/5">
+              <h4 class="font-bold text-sm text-red-600 flex items-center gap-2"><i data-lucide="shield-check" class="w-4 h-4 text-red-600"></i> Bebas Risiko Jaringan</h4>
+              <p class="text-xs text-slate-400 mt-1 lines-normal leading-relaxed">Tidak terpengaruh oleh mati lampu, tower internet down, ransomware ISP, ataupun kegagalan server cloud utama.</p>
+            </div>
+            <div class="glass p-5 rounded-xl border border-white/5">
+              <h4 class="font-bold text-sm text-red-600 flex items-center gap-2"><i data-lucide="cpu" class="w-4 h-4 text-red-600"></i> Mutu Kriptografi Enclave</h4>
+              <p class="text-xs text-slate-400 mt-1 lines-normal leading-relaxed">Tanda tangan saldo ditandatangani memakai algoritma asimetrik unik berstandar bank sentral internasional.</p>
+            </div>
+          </div>
+
+          <div class="flex justify-between items-center pt-6 border-t border-white/5 mt-8">
+            <button @click="navigateTo(1)" class="flex items-center gap-1 px-4 py-2 text-xs font-bold text-slate-400 hover:text-white cursor-pointer"><i data-lucide="arrow-left" class="w-4 h-4"></i> Beranda</button>
+            <button @click="navigateTo(11)" class="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-extrabold shadow-lg flex items-center gap-2 border border-red-500/30 cursor-pointer">
+              <span>Mulai Registrasi Wajah</span>
+              <i data-lucide="arrow-right" class="w-4 h-4 text-white"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- SCREEN 3: PILIH KATEGORI MINAT -->
+        <div x-show="currentScreen === 3" class="animate-fadeIn space-y-6 max-w-3xl mx-auto">
+          <div class="text-center space-y-2">
+            <h2 class="text-2xl font-bold text-slate-100 font-display">Pilihlah Kategori Minat Anda</h2>
+            <p class="text-xs text-slate-400">Pilihlah satu atau beberapa kategori transaksi yang paling sering Anda gunakan untuk mengoptimalkan database pengarsipan node:</p>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <template x-for="cat in availableCategories">
+              <div @click="toggleCategory(cat)"
+                   :class="selectedCategories.includes(cat) ? 'border-red-500/60 bg-red-500/10 text-red-600 font-semibold' : 'border-white/5 bg-white/5 hover:bg-white/10 text-slate-400'"
+                   class="p-4 rounded-xl border text-center cursor-pointer transition-all hover:scale-[1.01] flex flex-col items-center gap-2 justify-center min-h-[96px]">
+                <i :data-lucide="getCategoryIcon(cat)" class="w-5 h-5"></i>
+                <span class="text-[11px]" x-text="cat"></span>
+              </div>
+            </template>
+          </div>
+
+          <div class="flex justify-between items-center pt-6 border-t border-white/5">
+            <button @click="navigateTo(2)" class="flex items-center gap-1 px-4 py-2 text-xs font-bold text-slate-400 hover:text-white cursor-pointer"><i data-lucide="arrow-left" class="w-4 h-4"></i> Kembali</button>
+            <button @click="navigateTo(7)" class="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-extrabold shadow-lg flex items-center gap-2 border border-red-500/30 cursor-pointer">
+              <span>Lanjut ke Status Transaksi</span>
+              <i data-lucide="arrow-right" class="w-4 h-4 text-white"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- SCREEN 4: CARA KERJA TRANSAKSI OFFLINE -->
+        <div x-show="currentScreen === 4" class="animate-fadeIn space-y-6 max-w-3xl mx-auto">
+          <div class="text-center space-y-2">
+            <h2 class="text-2xl font-bold text-slate-100 font-display">Bagaimana Sistem Pembayaran Offline Bekerja?</h2>
+            <p class="text-xs text-slate-400">Memanfaatkan integrasi chip silikon internal handphone Anda serta verifikasi rantai aman:</p>
+          </div>
+
+          <div class="space-y-4">
+            <div class="glass p-5 rounded-xl border border-white/5 flex gap-4">
+              <span class="w-8 h-8 rounded-lg bg-red-500/10 text-red-600 font-extrabold flex items-center justify-center font-mono">1</span>
+              <div>
+                <h4 class="font-extrabold text-sm text-slate-100">Otorisasi Hak Akses (FIDO2 Biometrik)</h4>
+                <p class="text-xs text-slate-400 mt-0.5 leading-relaxed">Nasabah mengesahkan limit dompet offline melalui verifikasi wajah atau fingerprint langsung di perangkar lokal.</p>
+              </div>
+            </div>
+
+            <div class="glass p-5 rounded-xl border border-white/5 flex gap-4">
+              <span class="w-8 h-8 rounded-lg bg-red-500/10 text-red-600 font-extrabold flex items-center justify-center font-mono">2</span>
+              <div>
+                <h4 class="font-extrabold text-sm text-slate-100">Keluaran Signature Kripto</h4>
+                <p class="text-xs text-slate-400 mt-0.5 leading-relaxed">Setiap saldo berpindah, chip memotong nominal saldo lokal yang ditandatangani kunci privat rahasia simetrik di secure element.</p>
+              </div>
+            </div>
+
+            <div class="glass p-5 rounded-xl border border-white/5 flex gap-4">
+              <span class="w-8 h-8 rounded-lg bg-red-500/10 text-red-600 font-extrabold flex items-center justify-center font-mono">3</span>
+              <div>
+                <h4 class="font-extrabold text-sm text-slate-100">Konfirmasi Log & Simpan</h4>
+                <p class="text-xs text-slate-400 mt-0.5 leading-relaxed">Data pemotongan disimpan di Ledger Antara (pending). Ketika Anda menyambung internet kelak, saldo ini disinkronisasikan ke Bank Indonesia.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-between items-center pt-6 border-t border-white/5">
+            <button @click="navigateTo(10)" class="flex items-center gap-1 px-4 py-2 text-xs font-bold text-slate-400 hover:text-white cursor-pointer"><i data-lucide="arrow-left" class="w-4 h-4"></i> Kembali</button>
+            <button @click="navigateTo(3)" class="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-extrabold shadow-lg flex items-center gap-2 border border-red-500/30 cursor-pointer">
+              <span>Pilih Minat Transaksi</span>
+              <i data-lucide="arrow-right" class="w-4 h-4 text-white"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- SCREEN 5: RIWAYAT TRANSAKSI (DASHBOARD UTAMA) -->
+        <div x-show="currentScreen === 5" class="animate-fadeIn space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Balance Card and Synchronizer module -->
+            <div class="lg:col-span-4 space-y-5">
+              
+              <!-- Premium Red-accented Balance Card -->
+              <div class="glass p-6 rounded-2xl border border-white/10 relative overflow-hidden bg-gradient-to-br from-red-600/10 to-transparent">
+                <div class="absolute right-3 top-3 px-2 py-0.5 rounded text-[8px] bg-red-500/20 text-red-600 border border-red-500/20 uppercase font-mono tracking-widest font-extrabold">CORE_ENCLAVE</div>
+                <div class="text-xs font-semibold text-slate-400">Total Saldo Offline RDN</div>
+                <h3 class="text-2xl font-extrabold text-slate-100 font-mono mt-1" x-text="formatRupiah(offlineBalance)"></h3>
+                
+                <div class="flex items-center gap-2 mt-4 text-[10px] text-slate-400">
+                  <i data-lucide="wifi-off" class="w-3.5 h-3.5 text-red-600"></i>
+                  <span>Otorisasi aman di chip secure hardware mobile.</span>
+                </div>
+              </div>
+
+              <!-- Live Synchronizer Box -->
+              <div class="glass p-5 rounded-2xl border border-white/5 space-y-4">
+                <div class="flex items-center justify-between">
+                  <h4 class="text-xs font-extrabold uppercase tracking-wide text-slate-300 font-mono">Modul Sinkronisasi Ledger</h4>
+                  <span class="inline-flex w-2.5 h-2.5 rounded-full" :class="isSynced ? 'bg-green-500 animate-pulse' : 'bg-amber-400 animate-pulse'"></span>
+                </div>
+
+                <div x-show="!syncLoading && !isSynced" class="space-y-3">
+                  <p class="text-[11px] text-slate-400 leading-relaxed">
+                    Terdapat beberap transaksi baru yang tersimpan secara offline. Klik tombol sinkronisasi sewaktu Anda online untuk merapikan saldo RDN ke cloud BI.
+                  </p>
+                  <button @click="triggerSync()" class="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-500 font-extrabold text-white text-xs shadow-lg shadow-red-500/15 cursor-pointer border border-red-500/25 flex items-center justify-center gap-1.5 transition-transform hover:scale-[1.01]">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-white"></i>
+                    <span>Tautkan Sinkronisasi Sekarang</span>
+                  </button>
+                </div>
+
+                <!-- Sync Progress loader state -->
+                <div x-show="syncLoading" class="space-y-3">
+                  <div class="flex justify-between text-[10px] font-mono text-slate-400 font-bold">
+                    <span x-text="'PHASE: ' + syncPhase.toUpperCase()"></span>
+                    <span x-text="syncProgress + '%'"></span>
+                  </div>
+                  <div class="w-full h-1.5 rounded-full bg-white/5 overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-red-600 to-red-400 transition-all duration-100 animate-pulse" :style="'width: ' + syncProgress + '%'"></div>
+                  </div>
+                  
+                  <!-- Sync dynamic logs window -->
+                  <div class="bg-black/80 rounded-lg p-2.5 text-[9px] font-mono text-slate-400 h-24 overflow-y-auto no-scrollbar space-y-1 select-none border border-white/5">
+                    <template x-for="log in syncLogs">
+                      <div class="leading-relaxed text-red-500 font-bold" x-text="log"></div>
+                    </template>
+                  </div>
+                </div>
+
+                <!-- Sync Success Completed Status -->
+                <div x-show="isSynced" class="space-y-2 text-center py-2 animate-fadeIn">
+                  <div class="w-8 h-8 rounded-full bg-green-500/10 text-green-600 border border-green-500/20 flex items-center justify-center mx-auto shadow-md">
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-green-600"></i>
+                  </div>
+                  <h4 class="text-xs font-bold text-slate-100">Transkripsi Ledger Berhasil!</h4>
+                  <p class="text-[10px] text-slate-400 leading-normal max-w-xs mx-auto">
+                    Kunci log ledger lokal lunas divalidasi Bank Indonesia. Dompet Anda sekarang berstatus sinkron.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Ledger Transactions List -->
+            <div class="lg:col-span-8 glass p-5 rounded-2xl border border-white/5 flex flex-col space-y-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h3 class="font-extrabold text-sm text-slate-100 leading-normal">Kunci Log Transaksi Offline RDN</h3>
+                  <p class="text-[10px] text-slate-400 mt-0.5">Mencatat seluruh mutasi debet lokal peer-to-peer tanpa internet:</p>
+                </div>
+
+                <button @click="navigateTo(14)" class="px-4 py-1.5 rounded-xl bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 text-white text-xs font-extrabold flex items-center gap-1 shadow-md shadow-red-500/15 cursor-pointer">
+                  <i data-lucide="qr-code" class="w-3.5 h-3.5 text-white"></i>
+                  <span>Transaksi Baru</span>
+                </button>
+              </div>
+
+              <!-- Log Rows List -->
+              <div class="space-y-2 flex-1 max-h-[380px] overflow-y-auto no-scrollbar pr-1">
+                <template x-for="tx in transactions" :key="tx.id">
+                  <div @click="selectedTxId = tx.id; navigateTo(6)"
+                       class="glass-pill p-3.5 rounded-xl border border-white/5 hover:border-red-500/25 transition-all flex items-center justify-between cursor-pointer hover:scale-[1.005]">
+                    
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-xl flex items-center justify-center font-extrabold text-sm" :class="tx.bgColor + ' ' + tx.textColor" x-text="tx.initials"></div>
+                      <div>
+                        <h4 class="font-bold text-xs text-slate-100 leading-tight flex items-center gap-1.5">
+                          <span x-text="tx.merchant"></span>
+                          <template x-if="tx.method === 'NFC'">
+                            <span class="text-[8px] bg-amber-400/15 text-amber-400 font-extrabold px-1.5 py-0.5 rounded flex items-center gap-0.5" title="NFC Tap Payment">📡 NFC</span>
+                          </template>
+                          <template x-if="tx.method === 'QRIS'">
+                            <span class="text-[8px] bg-red-400/15 text-red-450 font-extrabold px-1.5 py-0.5 rounded flex items-center gap-0.5" title="QRIS Scan Payment">📷 QR</span>
+                          </template>
+                        </h4>
+                        <div class="flex gap-2 items-center text-[10px] text-slate-400 mt-1 leading-none">
+                          <span class="px-1.5 py-0.5 rounded bg-white/5" x-text="tx.category"></span>
+                          <span>•</span>
+                          <span x-text="tx.time"></span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="text-right">
+                      <span class="font-bold text-xs text-slate-100 block font-mono" x-text="'- ' + formatRupiah(tx.amount)"></span>
+                      <span class="text-[9px] font-mono tracking-wider font-extrabold" :class="tx.status === 'Selesai' ? 'text-green-500 animate-pulse' : 'text-amber-400 animate-pulse'" x-text="tx.status.toUpperCase()"></span>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SCREEN 6: DETAIL TRANSAKSI OFFLINE -->
+        <div x-show="currentScreen === 6" class="animate-fadeIn space-y-6 max-w-xl mx-auto">
+          <template x-if="getSelectedTx()">
+            <div class="space-y-5">
+              <div class="glass p-6 rounded-2xl border border-white/5 relative overflow-hidden text-center space-y-4">
+                <div class="absolute -right-16 -top-16 w-32 h-32 rounded-full bg-red-500/5 blur-xl"></div>
+                
+                <div class="w-14 h-14 rounded-full mx-auto flex items-center justify-center font-mono font-extrabold text-lg shadow-md"
+                     :class="getSelectedTx().bgColor + ' ' + getSelectedTx().textColor" x-text="getSelectedTx().initials"></div>
+                
+                <div class="space-y-1">
+                  <h3 class="font-bold text-base text-slate-100" x-text="getSelectedTx().merchant"></h3>
+                  <p class="text-xs text-slate-400" x-text="'Kategori: ' + getSelectedTx().category"></p>
+                </div>
+
+                <div class="py-4 border-y border-white/5 my-4">
+                  <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Nilai Pengeluaran Selesai</span>
+                  <h2 class="text-3xl font-extrabold text-red-600 font-mono mt-1" x-text="formatRupiah(getSelectedTx().amount)"></h2>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 text-left text-[11px] font-mono">
+                  <div class="space-y-2">
+                    <div class="text-slate-400">ID Transaksi:</div>
+                    <div class="text-slate-100 truncate" x-text="getSelectedTx().id"></div>
+
+                    <div class="text-slate-400">Metode Bayar:</div>
+                    <div class="text-slate-100 font-bold" x-text="getSelectedTx().method === 'NFC' ? '📡 NFC Tap Pay' : '📷 QRIS Offline Scan'"></div>
+                  </div>
+                  <div class="space-y-2">
+                    <div class="text-slate-400">Jam / Waktu:</div>
+                    <div class="text-slate-100" x-text="getSelectedTx().time"></div>
+
+                    <div class="text-slate-400">Status BI:</div>
+                    <div class="font-extrabold" :class="getSelectedTx().status === 'Selesai' ? 'text-green-500' : 'text-amber-400'" x-text="getSelectedTx().status + ' Ledger BI'"></div>
+                  </div>
+                </div>
+
+                <div class="bg-red-500/5 rounded-xl p-3.5 text-left text-[10px] text-slate-400 leading-normal border border-red-500/10">
+                  <b>Catatan Kriptografi:</b> Bukti pembayaran ini sah secara hukum dengan kode verifikasi <code>#SHA256-RDN-NODE-BI-883</code> yang tersimpan aman di chip secure hardware handphone Anda.
+                </div>
+              </div>
+
+              <!-- Receipt Footer -->
+              <div class="flex justify-between items-center pt-4">
+                <button @click="navigateTo(5)" class="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-slate-400 hover:text-white cursor-pointer"><i data-lucide="arrow-left" class="w-4 h-4"></i> Kembali ke Riwayat</button>
+                <button @click="printReceipt()" class="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-extrabold flex items-center gap-1.5 transition-transform hover:scale-[1.02] border border-red-500/20 cursor-pointer">
+                  <i data-lucide="file-text" class="w-3.5 h-3.5 text-white"></i>
+                  <span>Simpan Kuitansi Cetak</span>
+                </button>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- SCREEN 7: PENJELASAN STATUS TRANSAKSI -->
+        <div x-show="currentScreen === 7" class="animate-fadeIn space-y-6 max-w-3xl mx-auto">
+          <div class="text-center space-y-2">
+            <h2 class="text-2xl font-bold text-slate-100 font-display">Arti Status Transaksi RDN Offline</h2>
+            <p class="text-xs text-slate-400">Fokus memahami pembukuan instan dalam jaringan asimetrik rupiah digital:</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="glass p-5 rounded-2xl border border-white/5 space-y-3 bg-gradient-to-br from-amber-500/5 to-transparent">
+              <span class="inline-flex px-2 py-0.5 rounded text-[9px] bg-amber-500/25 text-amber-500 font-bold border border-amber-500/20">PENDING (MENCOCOKKAN)</span>
+              <p class="text-xs text-slate-400 leading-relaxed font-sans mt-2">
+                Definisi status <b>Pending</b> berarti pemindahan dana digital telah berhasil dilakukan antar chip perangkat pembayar dan penerima secara peer-to-peer tanpa internet. Berhasil secara fisik didebit tetapi menunggu online untuk pelaporan pembukuan di server BI.
+              </p>
+            </div>
+
+            <div class="glass p-5 rounded-2xl border border-white/5 space-y-3 bg-gradient-to-br from-green-500/5 to-transparent">
+              <span class="inline-flex px-2 py-0.5 rounded text-[9px] bg-green-500/25 text-green-500 font-bold border border-green-500/20">SELESAI (TERREKONSILIASI)</span>
+              <p class="text-xs text-slate-400 leading-relaxed font-sans mt-2">
+                Definisi status <b>Selesai</b> berarti log transaksi telah sukses dikirim ke gateway Bank Indonesia dan lunas divalidasi pembukuannya. Saldo resmi dikonversikan ke dalam mutasi umum yang terdaftar resmi.
+              </p>
+            </div>
+          </div>
+
+          <!-- Select Action -->
+          <div class="glass p-5 rounded-2xl border border-white/5 space-y-4">
+            <h3 class="text-xs font-mono font-bold tracking-wider text-red-600 uppercase">💡 PILILAH KELANJUTAN PROGRAM ANDA</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div @click="navigateTo(5)" class="glass p-4 rounded-xl border border-white/10 hover:border-red-500/30 transition-all cursor-pointer flex flex-col justify-between hover:scale-[1.01]">
+                <div>
+                  <h4 class="font-bold text-sm text-slate-100">Lihat Riwayat & Mutasi</h4>
+                  <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">Periksa log sinkronisasi, status RDN Node, rincian mutasi nominal, dan detail status pembukuan.</p>
+                </div>
+              </div>
+              <div @click="navigateTo(14)" class="glass p-4 rounded-xl border border-white/10 hover:border-red-500/30 transition-all cursor-pointer flex flex-col justify-between hover:scale-[1.01]">
+                <div>
+                  <h4 class="font-bold text-sm text-slate-100">Pindai QRIS & Bayar Offline</h4>
+                  <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">Luncurkan modul NFC / scanning kamera untuk melakukan simulasi transaksi di warung lokal.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-between items-center pt-8 border-t border-white/5">
+            <button @click="navigateTo(3)" class="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-slate-400 hover:text-white cursor-pointer"><i data-lucide="arrow-left" class="w-4 h-4"></i> Kembali</button>
+          </div>
+        </div>
+
+        <!-- SCREEN 8: KEAMANAN SECURE ELEMENT -->
+        <div x-show="currentScreen === 8" class="animate-fadeIn space-y-6 max-w-3xl mx-auto">
+          <div class="text-center space-y-2">
+            <h2 class="text-2xl font-bold text-slate-100 font-display">Teknologi Secure Element RDN</h2>
+            <p class="text-xs text-slate-400">Bagaimana modul perangkat keras mendedikasikan proteksi mutlak:</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="glass p-5 rounded-xl border border-white/5 text-center space-y-3">
+              <div class="w-10 h-10 rounded-full bg-red-500/10 text-red-600 flex items-center justify-center mx-auto"><i data-lucide="cpu" class="w-5 h-5"></i></div>
+              <h4 class="font-extrabold text-xs text-slate-100 uppercase">Hardware Locked</h4>
+              <p class="text-[11px] text-slate-400 leading-relaxed font-sans">Kunci privat unik disolder khusus pada logic board chip, anti-copy dan tidak bisa dimodifikasi oleh virus software.</p>
+            </div>
+
+            <div class="glass p-5 rounded-xl border border-white/5 text-center space-y-3">
+              <div class="w-10 h-10 rounded-full bg-red-500/10 text-red-600 flex items-center justify-center mx-auto"><i data-lucide="lock" class="w-5 h-5"></i></div>
+              <h4 class="font-extrabold text-xs text-slate-100 uppercase">Anti-Tampering Sensor</h4>
+              <p class="text-[11px] text-slate-400 leading-relaxed font-sans">Sistem auto-destruct kunci secara logikal mendeteksi jika ada anomali pembongkaran hardware fisik chip koin.</p>
+            </div>
+
+            <div class="glass p-5 rounded-xl border border-white/5 text-center space-y-3">
+              <div class="w-10 h-10 rounded-full bg-red-500/10 text-red-600 flex items-center justify-center mx-auto"><i data-lucide="zap" class="w-5 h-5"></i></div>
+              <h4 class="font-extrabold text-xs text-slate-100 uppercase">FIDO2 Biometric Sync</h4>
+              <p class="text-[11px] text-slate-400 leading-relaxed font-sans">Memindai scan sensor biometrik wajah langsung ke hardware terisolasi untuk otorisasi debet instan.</p>
+            </div>
+          </div>
+
+          <div class="flex justify-between items-center pt-8 border-t border-white/5">
+            <button @click="navigateTo(13)" class="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-slate-400 hover:text-white cursor-pointer"><i data-lucide="arrow-left" class="w-4 h-4"></i> Kembali</button>
+            <button @click="navigateTo(9)" class="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-extrabold shadow-lg flex items-center gap-2 border border-red-500/30 cursor-pointer">
+              <span>Pelajari Sandi Enkripsi AES-256</span>
+              <i data-lucide="arrow-right" class="w-4 h-4 text-white"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- SCREEN 9: ENKRIPSI AES-256 -->
+        <div x-show="currentScreen === 9" class="animate-fadeIn space-y-6 max-w-3xl mx-auto">
+          <div class="text-center space-y-2">
+            <h2 class="text-2xl font-bold text-slate-100 font-display">Tingkat Sandi Enkripsi AES-256</h2>
+            <p class="text-xs text-slate-400">Arsitektur kriptografi modular mengisolasi sirkulasi data ledger lokal Anda:</p>
+          </div>
+
+          <div class="glass p-6 rounded-2xl border border-white/5 space-y-4">
+            <h4 class="font-extrabold text-sm text-slate-100 flex items-center gap-2"><i data-lucide="shield-check" class="w-4 h-4 text-red-600"></i> Enkripsi Tingkat Militer Global Berlisensi</h4>
+            <p class="text-xs text-slate-400 leading-relaxed">
+              Setiap kali transaksi baru dibuat secara offline, rincian nominal dan sisa limit dilock menggunakan pass-key dinamis AES-256 bit asimetrik. Tanda bukti mutasi dibungkus hash kripto yang mustahil dipalsukan, melenyapkan potensi pembelanjaan ganda (double-spending).
+            </p>
+
+            <div class="bg-white/5 p-4 rounded-xl text-left font-mono text-[10px] space-y-1.5 border border-white/5 select-none">
+              <span class="text-red-600 font-bold block">// AES SHA-256 GENERATED PROOF //</span>
+              <div class="text-slate-400">Cipher proof: <span class="text-slate-200">f3a0c20188ef7b5a8e09f598b928cd10db762883eabfa99a8f27cf88de87ac99</span></div>
+              <div class="text-slate-400">Key strength: <span class="text-slate-200">AES-GCM (256-bit Key Length)</span></div>
+              <div class="text-slate-400">Validator signature: <span class="text-green-500">BI_ENCLAVE_SIGNED_OK</span></div>
+            </div>
+          </div>
+
+          <div class="flex justify-between items-center pt-8 border-t border-white/5">
+            <button @click="navigateTo(4)" class="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-slate-400 hover:text-white cursor-pointer"><i data-lucide="arrow-left" class="w-4 h-4"></i> RDN Security</button>
+            <button @click="navigateTo(10)" class="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-extrabold shadow-lg flex items-center gap-2 border border-red-500/30 cursor-pointer">
+              <span>Mulai Verifikasi Node</span>
+              <i data-lucide="arrow-right" class="w-4 h-4 text-white"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- SCREEN 10: VERIFIKASI NODE BERHASIL -->
+        <div x-show="currentScreen === 10" class="animate-fadeIn space-y-6 max-w-2xl mx-auto">
+          <div class="text-center space-y-4">
+            <div class="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/10 animate-pulse">
+              <i data-lucide="shield-check" class="w-8 h-8 text-emerald-400"></i>
+            </div>
+            
+            <div class="space-y-1">
+              <h2 class="text-2xl font-bold font-display text-slate-100">Verifikasi Node Berhasil!</h2>
+              <span class="inline-block px-2.5 py-0.5 rounded text-[10px] bg-green-500/20 text-green-400 font-extrabold border border-green-500/20">NODE SECURE #0925-ACTIVE</span>
+            </div>
+
+            <p class="text-xs text-slate-400 leading-relaxed max-w-md mx-auto">
+              Handphone Anda telah sukses bersertifikat dengan central bank ledger gateway. Batas limit offline per transaksi kini ditingkatkan menjadi Rp 5.000.000,00.
+            </p>
+
+            <div class="glass p-4 rounded-xl text-left text-xs font-mono space-y-1.5 border border-white/5">
+              <div class="flex justify-between">
+                <span class="text-slate-400">Local Node Type</span>
+                <span class="text-slate-200 font-semibold">Decentralized P2P Terminal</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Node ID</span>
+                <span class="text-slate-200 font-semibold">NODE-9508-RDN-LOC</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Validitas Node</span>
+                <span class="text-slate-200 font-semibold">Tersinkronisasi 100%</span>
+              </div>
+            </div>
+
+            <div class="pt-2">
+              <a href="#biometric" @click.prevent="navigateTo(11)" class="inline-flex items-center gap-1 text-xs text-red-600 hover:text-red-500 font-bold underline underline-offset-4 cursor-pointer">
+                Lanjut Ke Verifikasi Wajah RDN <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-red-600"></i>
+              </a>
+            </div>
+          </div>
+
+          <div class="flex justify-between items-center pt-8 border-t border-white/5">
+            <button @click="navigateTo(9)" class="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-slate-400 hover:text-white cursor-pointer"><i data-lucide="arrow-left" class="w-4 h-4"></i> Kembali</button>
+            <button @click="navigateTo(4)" class="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-extrabold shadow-lg flex items-center gap-2 border border-red-500/30 cursor-pointer">
+              <span>Pelajari Tata Cara</span>
+              <i data-lucide="arrow-right" class="w-4 h-4 text-white"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- SCREEN 11: VERIFIKASI WAJAH BIOMETRIK -->
+        <div x-show="currentScreen === 11" class="animate-fadeIn space-y-6 max-w-xl mx-auto">
+          <div class="space-y-4 text-center">
+            <h2 class="text-2xl font-bold tracking-tight text-slate-100 flex items-center gap-2 justify-center">
+              <i data-lucide="fingerprint" class="text-red-600 w-6 h-6"></i>
+              <span>Verifikasi Wajah Biometrik</span>
+            </h2>
+            <p class="text-xs text-slate-400">
+              Pastikan wajah Anda berada di dalam garis lingkaran hijau untuk mengaktifkan validasi hak akses saldo:
+            </p>
+
+            <div class="flex flex-col items-center justify-center p-4">
+              <div class="w-56 h-56 rounded-full border-2 border-emerald-400/40 relative flex items-center justify-center overflow-hidden bg-slate-950 p-1 bg-opacity-80 shadow-[0_0_24px_rgba(52,211,153,0.15)]">
+                <!-- Animated spinning ring -->
+                <div class="absolute inset-0 rounded-full border border-dashed border-red-500/35" :class="faceScanActive ? 'animate-spin' : ''"></div>
+                
+                <div class="w-full h-full rounded-full bg-slate-900 border border-white/10 overflow-hidden relative flex items-center justify-center">
+                  <template x-if="faceScanActive">
+                    <div class="w-full h-full relative">
+                      <img class="w-full h-full object-cover rounded-full bg-slate-800 scale-110 filter saturate-150" src="https://api.dicebear.com/7.x/avataaars/svg?seed=RDN" alt="Face Scan active">
+                      
+                      <!-- Green laser line -->
+                      <div class="absolute inset-x-0 top-0 h-0.5 bg-green-400 shadow-[0_0_12px_rgba(74,222,128,1)]"
+                           :style="'transform: translateY(' + (110 + Math.sin(Date.now()/120)*100) + 'px)'"></div>
+                      
+                      <div class="absolute inset-0 bg-green-500/5 flex items-center justify-center">
+                        <span class="text-xs font-mono font-extrabold text-green-400 bg-slate-950/80 px-2.5 py-1 rounded border border-green-500/20" x-text="'MEMINDAI ' + faceScanProgress + '%'"></span>
+                      </div>
+                    </div>
+                  </template>
+                  
+                  <template x-if="!faceScanActive">
+                    <div class="text-center space-y-2 p-4">
+                      <i data-lucide="users" class="w-8 h-8 mx-auto text-slate-500 animate-pulse"></i>
+                      <span class="text-[10px] text-slate-400 font-mono block font-bold">KAMERA SIAP (STANDBY)</span>
+                    </div>
+                  </template>
+                </div>
+              </div>
+
+              <div x-show="faceScanActive" class="w-56 bg-slate-900/40 h-1.5 rounded-full overflow-hidden border border-white/5 mt-4">
+                <div class="bg-gradient-to-r from-red-600 to-red-400 h-full transition-all duration-100" :style="'width: ' + faceScanProgress + '%'"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-between items-center pt-8 border-t border-white/5">
+            <button @click="navigateTo(1)" class="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-slate-400 hover:text-white cursor-pointer"><i data-lucide="arrow-left" class="w-4 h-4"></i> Kembali</button>
+            <button @click="triggerFaceScan()" :disabled="faceScanActive"
+                    :class="faceScanActive ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-red-600 hover:bg-red-500 text-white font-extrabold'"
+                    class="px-5 py-2.5 rounded-xl text-xs font-bold transition-transform shadow-lg cursor-pointer flex items-center gap-1.5">
+              <i data-lucide="zap" class="w-4 h-4 text-white"></i>
+              <span x-text="faceScanActive ? 'Memproses Pemindaian...' : 'Mulai Verifikasi Wajah'"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- SCREEN 12: RINGKASAN VERIFIKASI IDENTITAS -->
+        <div x-show="currentScreen === 12" class="animate-fadeIn space-y-6 max-w-xl mx-auto">
+          <div class="space-y-4">
+            <div class="text-center space-y-2">
+              <span class="px-2.5 py-0.5 rounded text-[9px] bg-red-500/10 text-red-600 border border-red-500/20 font-bold">DEKONTAMINASI DATA OK</span>
+              <h2 class="text-2xl font-bold tracking-tight text-slate-100 font-display">Ringkasan Verifikasi Identitas</h2>
+              <p class="text-xs text-slate-400">Mohon periksa data diri Anda sebelum mengeksporkannya ke hardware enclave:</p>
+            </div>
+
+            <!-- Identity Card Form Design -->
+            <div class="glass p-5 rounded-2xl border border-white/10 space-y-4 bg-gradient-to-br from-red-500/5 to-transparent relative overflow-hidden">
+              <div class="flex gap-4 items-center pb-4 border-b border-white/5">
+                <img class="w-12 h-12 rounded-full border border-red-500/50 p-0.5" src="https://api.dicebear.com/7.x/avataaars/svg?seed=RDN" alt="Avatar JUNAIDI ROTI">
+                <div>
+                  <h4 class="font-bold text-sm text-slate-100">JUNAIDI ROTI</h4>
+                  <span class="text-[9px] text-red-600 font-mono tracking-wider font-extrabold">ID NASABAH #RDN-902-DS</span>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4 text-xs font-mono">
+                <div class="space-y-1">
+                  <span class="text-[10px] text-slate-400">Verifikator:</span>
+                  <div class="text-slate-200">Kamera Biometrik AI</div>
+                </div>
+                <div class="space-y-1">
+                  <span class="text-[10px] text-slate-400">Status Validitas:</span>
+                  <div class="text-green-500 font-bold">Verified 100%</div>
+                </div>
+                <div class="space-y-1">
+                  <span class="text-[10px] text-slate-400">Didaftarkan Pada:</span>
+                  <div class="text-slate-200" x-text="getCurrentDateString()"></div>
+                </div>
+                <div class="space-y-1">
+                  <span class="text-[10px] text-slate-400">Tingkat Enklosur:</span>
+                  <div class="text-red-500 font-bold">FIDO2 SECURE</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-between items-center pt-8 border-t border-white/5">
+            <button @click="navigateTo(11)" class="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-slate-400 hover:text-white cursor-pointer"><i data-lucide="arrow-left" class="w-4 h-4"></i> Scan Ulang</button>
+            <button @click="navigateTo(13)" class="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-extrabold shadow-lg flex items-center gap-1.5 border border-red-500/30 cursor-pointer">
+              <span>Konfirmasi & Submit</span>
+              <i data-lucide="arrow-right" class="w-4 h-4 text-white"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- SCREEN 13: KONFIRMASI PENGIRIMAN VERIFIKASI -->
+        <div x-show="currentScreen === 13" class="animate-fadeIn space-y-6 max-w-xl mx-auto">
+          <div class="glass p-6 rounded-2xl border border-white/5 text-center space-y-4">
+            <div class="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/35 text-emerald-400 flex items-center justify-center mx-auto shadow-lg animate-bounce">
+              <i data-lucide="check" class="w-8 h-8 text-emerald-400"></i>
+            </div>
+            
+            <div class="space-y-1">
+              <h2 class="text-2xl font-bold font-display text-slate-100">Registrasi Wajah Berhasil!</h2>
+              <p class="text-xs text-slate-400">ID Digital Anda telah disimpan aman di secure hardware chip.</p>
+            </div>
+
+            <div class="flex justify-center items-center pt-8 border-t border-white/5">
+              <button @click="navigateTo(8)" class="px-8 py-3 rounded-2xl bg-gradient-to-r from-red-600 to-red-400 text-white text-sm font-extrabold shadow-lg hover:scale-[1.02] flex items-center gap-2 border border-red-500/30 cursor-pointer transition-transform">
+                <span>Lanjut Pelajari Keamanan & Cara Kerja RDN</span>
+                <i data-lucide="arrow-right" class="w-4 h-4 text-white"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SCREEN 14: PINDAI QR & BAYAR OFFLINE -->
+        <div x-show="currentScreen === 14" class="animate-fadeIn space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Scan Inputs Configuration Box -->
+            <div class="lg:col-span-4 glass p-5 rounded-2xl border border-white/5 space-y-4">
+              <div class="space-y-1 pb-2 border-b border-white/5">
+                <h3 class="font-extrabold text-sm text-slate-100 uppercase font-mono tracking-wider">Konfigurator Kasir Toko</h3>
+                <p class="text-[10px] text-slate-400 mt-0.5 leading-normal">Sesuaikan rincian tagihan merchant di bawah ini sebelum mematikan / mensimulasikan internet:</p>
+              </div>
+
+              <!-- Merchant presets selection -->
+              <div class="space-y-1">
+                <label class="text-[10px] text-slate-400 uppercase font-bold block">Pilih Contoh Toko:</label>
+                <div class="grid grid-cols-1 gap-1.5">
+                  <button @click="selectPreset('Warung Pojok Bu Sri', 'Kuliner', 15000)"
+                          :class="customMerchantInput === '' && scanSelectedMerchant === 'Warung Pojok Bu Sri' ? 'border-red-500/40 bg-red-500/5 text-red-600' : 'border-white/5 text-slate-400'"
+                          class="py-2 px-3 border rounded-lg text-left text-xs bg-slate-900/60 font-semibold cursor-pointer">
+                    Warung Pojok Bu Sri (Rp 15.000)
+                  </button>
+                  <button @click="selectPreset('Apotek Sehat Bahagia', 'Keluarga', 45000)"
+                          :class="customMerchantInput === '' && scanSelectedMerchant === 'Apotek Sehat Bahagia' ? 'border-red-500/40 bg-red-500/5 text-red-600' : 'border-white/5 text-slate-400'"
+                          class="py-2 px-3 border rounded-lg text-left text-xs bg-slate-900/60 font-semibold cursor-pointer">
+                    Apotek Sehat Bahagia (Rp 45.000)
+                  </button>
+                  <button @click="selectPreset('Bensin Pertamini Mart', 'Transportasi', 20000)"
+                          :class="customMerchantInput === '' && scanSelectedMerchant === 'Bensin Pertamini Mart' ? 'border-red-500/40 bg-red-500/5 text-red-600' : 'border-white/5 text-slate-400'"
+                          class="py-2 px-3 border rounded-lg text-left text-xs bg-slate-900/60 font-semibold cursor-pointer">
+                    Bensin Pertamini Mart (Rp 20.000)
+                  </button>
+                </div>
+              </div>
+
+              <!-- Custom text entries -->
+              <div class="space-y-3 pt-2">
+                <div class="space-y-1">
+                  <label class="text-[10px] text-slate-400 uppercase font-bold block">Atau Input Manual Merchant:</label>
+                  <input type="text" x-model="customMerchantInput" placeholder="Contoh: Toko Buku Jaya..."
+                         class="w-full bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-red-500/50">
+                </div>
+
+                <div class="space-y-1">
+                  <label class="text-[10px] text-slate-400 uppercase font-bold block">Input Nominal Rupiah:</label>
+                  <input type="number" x-model="customAmountInput" placeholder="Contoh: 50000"
+                         class="w-full bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-red-500/50 font-mono">
+                </div>
+              </div>
+            </div>
+
+            <!-- Main Scanner Camera Visualizer -->
+            <div class="lg:col-span-8 glass p-6 rounded-2xl border border-white/5 flex flex-col justify-between space-y-6">
+              
+              <!-- Payment Method Selector Slider -->
+              <template x-if="scanState === 'idle'">
+                <div class="bg-slate-900/60 p-1 border border-white/5 rounded-xl flex gap-1 select-none">
+                  <button type="button" @click="paymentMode = 'qr'"
+                          :class="paymentMode === 'qr' ? 'bg-red-600 text-white font-extrabold shadow-md' : 'text-slate-400 hover:text-slate-200'"
+                          class="flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                    <i data-lucide="qr-code" class="w-3.5 h-3.5"></i>
+                    <span>Pindai QRIS QR</span>
+                  </button>
+                  <button type="button" @click="paymentMode = 'nfc'"
+                          :class="paymentMode === 'nfc' ? 'bg-amber-500 text-slate-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'"
+                          class="flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                    <i data-lucide="smartphone" class="w-3.5 h-3.5"></i>
+                    <span>Sentuh NFC Tap</span>
+                  </button>
+                </div>
+              </template>
+
+              <div class="flex-1 min-h-[300px] bg-slate-950 rounded-2xl relative overflow-hidden flex flex-col items-center justify-center p-6 border border-white/10">
+                
+                <!-- IDLE VIEWPORT -->
+                <div x-show="scanState === 'idle'" class="text-center space-y-4 animate-fadeIn w-full flex flex-col items-center justify-center">
+                  
+                  <!-- QR Mode Visualizer -->
+                  <template x-if="paymentMode === 'qr'">
+                    <div class="space-y-4 flex flex-col items-center justify-center">
+                      <div class="w-16 h-16 rounded-2xl border border-dashed border-red-500/30 flex items-center justify-center bg-red-500/5 relative group hover:border-red-400 transition-colors">
+                        <i data-lucide="qr-code" class="w-8 h-8 text-red-500"></i>
+                      </div>
+                      <div class="space-y-1.5 max-w-sm mx-auto">
+                        <span class="text-[9px] uppercase font-bold font-mono tracking-widest text-red-500 block">Kamera Scan Teropong Aktif</span>
+                        <h4 class="text-sm font-extrabold text-slate-200">Arahkan Lensa Ke Kode QRIS Toko</h4>
+                        <p class="text-[11px] text-slate-500 leading-normal">
+                          Tekan tombol di bawah ini untuk mensimulasikan pembacaan frame QRIS merchant tanpa sinyal internet.
+                        </p>
+                      </div>
+                    </div>
+                  </template>
+
+                  <!-- NFC Mode Visualizer -->
+                  <template x-if="paymentMode === 'nfc'">
+                    <div class="space-y-4 flex flex-col items-center justify-center">
+                      <div class="w-16 h-16 rounded-full border border-dashed border-amber-500/40 flex items-center justify-center bg-amber-500/5 relative animate-pulse">
+                        <i data-lucide="smartphone" class="w-8 h-8 text-amber-400 animate-pulse"></i>
+                      </div>
+                      <div class="space-y-1.5 max-w-sm mx-auto">
+                        <span class="text-[9px] uppercase font-bold font-mono tracking-widest text-amber-400 block">📡 NFC Secure Element Ready</span>
+                        <h4 class="text-sm font-extrabold text-amber-400">Tempelkan HP ke Terminal Toko</h4>
+                        <p class="text-[11px] text-slate-500 leading-normal">
+                          Sentuhkan chip HP Anda ke terminal sensor contactless. Ledger offline mendaftarkan asimetrik key enkripsi.
+                        </p>
+                      </div>
+                    </div>
+                  </template>
+
+                  <div class="bg-slate-900/80 border border-white/5 rounded-xl p-3 text-xs w-full max-w-md text-left space-y-1 font-mono">
+                    <div class="flex justify-between">
+                      <span class="text-slate-500 text-[10px]">Merchant Terpilih:</span>
+                      <span class="text-slate-300 font-semibold" x-text="customMerchantInput.trim() || scanSelectedMerchant"></span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span class="text-slate-500 text-[10px]">Nilai Transaksi:</span>
+                      <span class="text-red-400 font-bold" x-text="'Rp ' + (customAmountInput.trim() ? Number(customAmountInput) : scanSelectedAmount).toLocaleString('id-ID')"></span>
+                    </div>
+                    <div class="flex justify-between border-t border-white/5 pt-1 mt-1 text-[9px]">
+                      <span class="text-slate-500">Metode:</span>
+                      <span :class="paymentMode === 'nfc' ? 'text-amber-400 font-semibold' : 'text-red-500 font-semibold'" class="font-bold uppercase tracking-wider text-[10px]" x-text="paymentMode === 'nfc' ? '📡 NFC Tap Pay' : '📷 QRIS Scan'"></span>
+                    </div>
+                  </div>
+
+                  <button @click="startQRScan()" 
+                          :class="paymentMode === 'nfc' ? 'bg-amber-500 hover:bg-amber-450 border-amber-400/35 text-slate-950 shadow-amber-500/20' : 'bg-red-600 hover:bg-red-500 border-red-500/30 text-white shadow-red-500/20'"
+                          class="px-6 py-2.5 rounded-xl text-xs font-extrabold shadow-lg cursor-pointer border flex items-center gap-2 mx-auto justify-center transition-all">
+                    <span x-text="paymentMode === 'nfc' ? 'Sentuhkan & Bayar NFC' : 'Inisiasi Scanning QR'"></span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5" :class="paymentMode === 'nfc' ? 'text-slate-950' : 'text-white'"></i>
+                  </button>
+                </div>
+
+                <!-- SCANNING LOADING VIEWPORT -->
+                <div x-show="scanState === 'scanning'" class="w-full flex flex-col items-center justify-center py-6 animate-fadeIn">
+                  <!-- Custom Animated QR Finder Target Box -->
+                  <template x-if="paymentMode === 'qr'">
+                    <div class="relative w-44 h-44 border-2 border-dashed border-red-400/40 rounded-2xl overflow-hidden p-2 bg-slate-900 bg-opacity-70 flex flex-col items-center justify-center">
+                      <div class="absolute inset-x-0 h-[3px] bg-gradient-to-r from-transparent via-red-450 to-transparent shadow-[0_0_12px_#ef4444] animate-bounce w-full z-10"></div>
+                      <i data-lucide="qr-code" class="w-16 h-16 text-slate-500 animate-pulse"></i>
+
+                      <div class="space-y-1.5 text-center mt-4 absolute inset-x-0 bottom-3">
+                        <h4 class="text-[9px] font-bold text-slate-300 uppercase tracking-widest animate-pulse font-mono">MEMPROSES ENCLAVE CHIP...</h4>
+                      </div>
+                    </div>
+                  </template>
+
+                  <template x-if="paymentMode === 'nfc'">
+                    <div class="relative w-44 h-44 border-2 border-dashed border-amber-400/40 rounded-full overflow-hidden p-2 bg-slate-900 bg-opacity-70 flex flex-col items-center justify-center">
+                      <i data-lucide="smartphone" class="w-16 h-16 text-amber-500/60 animate-pulse"></i>
+
+                      <div class="space-y-1.5 text-center mt-4 absolute inset-x-0 bottom-3">
+                        <h4 class="text-[9px] font-bold text-amber-400 uppercase tracking-widest animate-pulse font-mono">📡 WIRELESS NFC CHANNEL...</h4>
+                      </div>
+                    </div>
+                  </template>
+
+                  <!-- Pay Progress stats -->
+                  <div class="w-44 space-y-1.5 mt-5">
+                    <div class="flex justify-between text-[10px] font-semibold text-slate-400 font-mono">
+                      <span>SIGNING KEY</span>
+                      <span x-text="scanProgress + '%'"></span>
+                    </div>
+                    <div class="w-full h-1.5 rounded-full bg-white/5 overflow-hidden border border-white/5">
+                      <div class="h-full transition-all duration-100" :class="paymentMode === 'nfc' ? 'bg-amber-500' : 'bg-red-650'" :style="'width: ' + scanProgress + '%'"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- SUCCESS VIEWPORT WITH KUITANSI RECEIPT -->
+                <div x-show="scanState === 'success'" class="w-full flex flex-col items-center justify-center text-center space-y-4 py-4 animate-fadeIn">
+                  <div class="w-12 h-12 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center text-green-400 shadow-md">
+                    <i data-lucide="check-circle-2" class="w-6 h-6 text-green-400"></i>
+                  </div>
+
+                  <div class="space-y-1">
+                    <h4 class="text-sm font-bold text-green-500">Pembayaran Sukses Disimpan</h4>
+                    <p class="text-[11px] text-slate-400 leading-normal max-w-xs mx-auto">
+                      Sebesar <b class="text-red-500 font-mono" x-text="'Rp ' + (customAmountInput.trim() ? Number(customAmountInput) : scanSelectedAmount).toLocaleString('id-ID')"></b> sukses didebit secara offline dari chip Secure Element.
+                    </p>
+                  </div>
+
+                  <!-- Receipt specs -->
+                  <div class="bg-slate-950/90 border border-white/5 rounded-xl p-4 text-xs w-full max-w-md text-left space-y-1.5 font-mono">
+                    <div class="flex justify-between items-center text-[10px]">
+                      <span class="text-slate-500">Saldo Akhir Offline:</span>
+                      <span class="text-slate-200" x-text="formatRupiah(offlineBalance)"></span>
+                    </div>
+                    <div class="flex justify-between items-center text-[10px]">
+                      <span class="text-slate-500">Toko / Merchant:</span>
+                      <span class="text-white font-bold" x-text="customMerchantInput.trim() || scanSelectedMerchant"></span>
+                    </div>
+                    <div class="flex justify-between items-center text-[10px]">
+                      <span class="text-slate-500">Status Pencatatan:</span>
+                      <span class="text-amber-500 font-extrabold uppercase flex items-center gap-1">PENDING SYNC</span>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-col sm:flex-row gap-2 w-full max-w-md pt-2">
+                    <button @click="navigateTo(5)" class="flex-1 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold transition-all border border-white/10 cursor-pointer">
+                      Lihat Histori Transaksi
+                    </button>
+                    <button @click="scanState = 'idle'; refreshIcons()" class="flex-1 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-all border border-red-500/30 cursor-pointer">
+                      Pembayaran Baru
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+
+              <div class="flex justify-end items-center pt-4 border-t border-white/5">
+                <button @click="navigateTo(5)" class="px-5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-[11px] font-bold border border-white/10 flex items-center gap-1 text-slate-400 hover:text-white cursor-pointer">
+                  <span>List Transaksi Offline</span>
+                  <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-400"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SCREEN 15: Transfer Saldo Offline -->
+        <div x-show="currentScreen === 15" class="animate-fadeIn space-y-6">
+          <div class="flex items-center justify-between pb-4 border-b border-white/5">
+            <div class="space-y-1">
+              <span class="px-2.5 py-0.5 rounded text-[9px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-bold uppercase tracking-wider">P2P OFFLINE DISCOVERY</span>
+              <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-white font-display">Kirim Transfer Offline</h2>
+              <p class="text-xs text-slate-400">Hubungkan Secure Element Anda secara langsung ke perangkat terdekat tanpa internet.</p>
+            </div>
+          </div>
+
+          <div x-show="transferState === 'idle'" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Left: Config -->
+            <div class="glass p-5 rounded-2xl border border-white/10 space-y-4 bg-gradient-to-br from-indigo-500/5 to-transparent">
+              <div class="space-y-2">
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">1. Pilih Ponsel Penerima Terdekat</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <button type="button" @click="transferTargetDevice = 'Handphone Ani'; transferCustomDeviceInput = ''"
+                          :class="transferTargetDevice === 'Handphone Ani' && !transferCustomDeviceInput ? 'bg-indigo-500/10 border-indigo-400 text-slate-100 shadow-[0_0_15px_rgba(99,102,241,0.15)] font-bold' : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10'"
+                          class="p-2.5 rounded-xl border text-left transition-all cursor-pointer">
+                    <p class="text-xs leading-normal">Handphone Ani</p>
+                    <p class="text-[9px] font-mono opacity-65">SE-982-ANI</p>
+                  </button>
+                  <button type="button" @click="transferTargetDevice = 'Handphone Budi'; transferCustomDeviceInput = ''"
+                          :class="transferTargetDevice === 'Handphone Budi' && !transferCustomDeviceInput ? 'bg-indigo-500/10 border-indigo-400 text-slate-100 shadow-[0_0_15px_rgba(99,102,241,0.15)] font-bold' : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10'"
+                          class="p-2.5 rounded-xl border text-left transition-all cursor-pointer">
+                    <p class="text-xs leading-normal">Handphone Budi</p>
+                    <p class="text-[9px] font-mono opacity-65">SE-341-BUDI</p>
+                  </button>
+                  <button type="button" @click="transferTargetDevice = 'Handphone Citra'; transferCustomDeviceInput = ''"
+                          :class="transferTargetDevice === 'Handphone Citra' && !transferCustomDeviceInput ? 'bg-indigo-500/10 border-indigo-400 text-slate-100 shadow-[0_0_15px_rgba(99,102,241,0.15)] font-bold' : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10'"
+                          class="p-2.5 rounded-xl border text-left transition-all cursor-pointer">
+                    <p class="text-xs leading-normal">Handphone Citra</p>
+                    <p class="text-[9px] font-mono opacity-65">SE-772-CITR</p>
+                  </button>
+                  <button type="button" @click="transferTargetDevice = ''; transferCustomDeviceInput = 'Handphone Lain'"
+                          :class="transferCustomDeviceInput ? 'bg-indigo-500/10 border-indigo-400 text-slate-100 shadow-[0_0_15px_rgba(99,102,241,0.15)] font-bold' : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10'"
+                          class="p-2.5 rounded-xl border text-left transition-all cursor-pointer">
+                    <p class="text-xs leading-normal">Lainnya...</p>
+                    <p class="text-[9px] font-mono opacity-65">Input Kustom</p>
+                  </button>
+                </div>
+
+                <div x-show="transferTargetDevice === ''">
+                  <input type="text" placeholder="Masukkan Nama Device / ID Penerima..." x-model="transferCustomDeviceInput"
+                         class="w-full bg-slate-900 border border-indigo-500/30 rounded-xl px-3 py-2 text-xs font-semibold text-slate-200 outline-none focus:border-indigo-400 transition-colors">
+                </div>
+              </div>
+
+              <div class="space-y-2">
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">2. Jumlah Nominal Transfer (RDN)</label>
+                <div class="relative">
+                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 font-mono text-xs text-indigo-400 font-extrabold">Rp</span>
+                  <input type="number" placeholder="0" x-model="transferAmountInput"
+                         class="w-full bg-slate-900/90 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm font-bold font-mono text-slate-200 outline-none focus:border-indigo-400 transition-colors">
+                </div>
+                <div class="flex flex-wrap gap-1.5 mt-1">
+                  <template x-for="val in ['10000', '25000', '50000', '100000', '250000', '500000']">
+                    <button type="button" @click="transferAmountInput = val"
+                            :class="transferAmountInput === val ? 'bg-indigo-500/20 border-indigo-400/50 text-indigo-300' : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10'"
+                            class="px-2.5 py-1 rounded-lg text-[10px] font-bold font-mono border transition-all cursor-pointer"
+                            x-text="'Rp ' + Number(val).toLocaleString('id-ID')">
+                    </button>
+                  </template>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Transmission channel & trigger -->
+            <div class="glass p-5 rounded-2xl border border-white/10 flex flex-col justify-between space-y-4 bg-gradient-to-br from-indigo-500/5 to-transparent">
+              <div class="space-y-3">
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">3. Saluran Transmisi Terpilih</label>
+                <div class="p-3.5 rounded-xl border bg-indigo-500/10 border-indigo-400/50 text-slate-100 shadow-[0_0_15px_rgba(99,102,241,0.12)]">
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="smartphone" class="w-4 h-4 text-indigo-400 animate-pulse"></i>
+                    <p class="text-xs font-extrabold text-slate-100">NFC Contactless Tap (Mandatory)</p>
+                  </div>
+                  <p class="text-[10px] text-slate-400 ml-6 mt-1 leading-normal">
+                    Tempelkan ponsel Anda langsung ke ponsel penerima untuk transfer data Secure Element (13.56 MHz) secara instan tanpa internet.
+                  </p>
+                </div>
+              </div>
+
+              <div class="pt-2">
+                <button type="button" @click="handlePerformTransfer()"
+                        class="w-full px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white font-extrabold text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(99,102,241,0.25)] flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer">
+                  <i data-lucide="send" class="w-3.5 h-3.5 text-white"></i>
+                  <span>Kirim Transfer (P2P Offline)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Transferring state animation -->
+          <div x-show="transferState === 'transferring'" class="glass p-8 rounded-2xl border border-white/10 max-w-xl mx-auto flex flex-col items-center justify-center space-y-6 bg-gradient-to-br from-indigo-500/5 to-transparent">
+            <div class="w-20 h-20 rounded-full border border-indigo-500/20 flex items-center justify-center relative bg-indigo-950/20">
+              <span class="absolute inset-2 rounded-full border border-dashed border-indigo-500/40 animate-spin opacity-40"></span>
+              <i data-lucide="wifi" class="w-8 h-8 text-indigo-400 animate-pulse rotate-90"></i>
+            </div>
+
+            <div class="space-y-1.5 text-center w-full">
+              <h4 class="text-sm font-bold text-slate-100 uppercase tracking-widest animate-pulse">Menghubungkan & Mentransfer Ke Penerima...</h4>
+              <p class="text-xs text-slate-400 max-w-md mx-auto leading-normal">
+                Sedang mengirim nominal <b class="text-indigo-300" x-text="formatRupiah(Number(transferAmountInput))"></b> RDN ke <b class="text-indigo-300" x-text="transferCustomDeviceInput ? transferCustomDeviceInput : transferTargetDevice"></b> via saluran NFC Offline.
+              </p>
+            </div>
+
+            <div class="w-full space-y-1.5">
+              <div class="flex justify-between text-[10px] font-mono text-slate-400 font-extrabold">
+                <span>MENGIRIM GRAPH SIGNATURE TOKEN</span>
+                <span x-text="transferProgress + '%'"></span>
+              </div>
+              <div class="w-full h-1.5 rounded-full bg-white/5 overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-indigo-500 to-indigo-400 transition-all duration-150" :style="'width: ' + transferProgress + '%'"></div>
+              </div>
+            </div>
+
+            <div class="bg-slate-950 border border-white/5 p-3 rounded-xl w-full text-[10px] font-mono text-slate-400 text-left space-y-1">
+              <p>[OK] Inisiasi Secure Element hardware key...</p>
+              <p>[CRYPT] Menghasilkan token tanda tangan terenkripsi AES-GCM-256...</p>
+              <p>[SEND] Mentransmisikan paket ledger offline...</p>
+            </div>
+          </div>
+
+          <!-- Success result receipt -->
+          <div x-show="transferState === 'success'" class="glass p-8 rounded-2xl border border-indigo-500/20 max-w-xl mx-auto flex flex-col items-center justify-center space-y-6 bg-gradient-to-br from-indigo-500/5 to-transparent">
+            <div class="w-14 h-14 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center text-green-400 shadow-[0_0_20px_rgba(34,197,94,0.15)] animate-bounce">
+              <i data-lucide="check" class="w-6 h-6 text-green-400"></i>
+            </div>
+
+            <div class="space-y-1 text-center font-sans">
+              <h4 class="text-lg font-bold text-green-400 font-display">Transfer Offline Berhasil!</h4>
+              <p class="text-xs text-slate-400 max-w-md mx-auto leading-normal">
+                Token transaksi ledger offline telah sukses ditransmisikan dan didebit secara lokal dari Secure Element fisik handphone Anda.
+              </p>
+            </div>
+
+            <div class="bg-slate-950 border border-white/5 rounded-xl p-4 text-xs w-full text-left space-y-2 font-mono">
+              <div class="flex justify-between items-center pb-2 border-b border-white/5">
+                <span class="text-slate-500 text-[10px]">Tujuan Transfer:</span>
+                <span class="text-slate-200 font-semibold" x-text="transferCustomDeviceInput ? transferCustomDeviceInput : transferTargetDevice"></span>
+              </div>
+              <div class="flex justify-between items-center pb-2 border-b border-white/5">
+                <span class="text-slate-500 text-[10px]">Nominal Terpotong:</span>
+                <span class="text-indigo-400 font-bold" x-text="formatRupiah(Number(transferAmountInput))"></span>
+              </div>
+              <div class="flex justify-between items-center pb-2 border-b border-white/5">
+                <span class="text-slate-500 text-[10px]">Sisa Saldo RDN:</span>
+                <span class="text-slate-300" x-text="formatRupiah(offlineBalance)"></span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-slate-500 text-[10px]">Status Pembukuan:</span>
+                <span class="text-amber-400 font-bold uppercase flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span> PENDING SYNC</span>
+              </div>
+            </div>
+
+            <div class="flex gap-2 w-full font-sans">
+              <button type="button" @click="transferState = 'idle'; transferProgress = 0"
+                      class="flex-1 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 hover:text-white border border-white/10 text-xs font-bold transition-all cursor-pointer">
+                Kirim Berulang
+              </button>
+              <button type="button" @click="navigateTo(5)"
+                      class="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all border border-indigo-500/30 cursor-pointer">
+                Lihat Mutasi Ledger
+              </button>
+            </div>
+          </div>
+
+          <div class="flex justify-end items-center pt-8 border-t border-white/5">
+            <button @click="navigateTo(1)"
+                    class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white cursor-pointer border border-transparent bg-transparent">
+              <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Kembali ke Beranda
+            </button>
+          </div>
+        </div>
+
+        <!-- SCREEN 16: Terima Saldo Offline -->
+        <div x-show="currentScreen === 16" class="animate-fadeIn space-y-6">
+          <div class="flex items-center justify-between pb-4 border-b border-white/5">
+            <div class="space-y-1">
+              <span class="px-2.5 py-0.5 rounded text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold uppercase tracking-wider font-mono">P2P OFFLINE RECEIVER</span>
+              <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-white font-display">Terima Saldo Offline</h2>
+              <p class="text-xs text-slate-400">Dapatkan dana RDN lokal secara instan lewat koneksi NFC Contactless Tap.</p>
+            </div>
+          </div>
+
+          <div x-show="receiveState === 'idle'" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Left: Config -->
+            <div class="glass p-5 rounded-2xl border border-white/10 space-y-4 bg-gradient-to-br from-emerald-500/5 to-transparent">
+              <div class="space-y-2">
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">1. Tentukan Nama Pengirim (Simulasi)</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <button type="button" @click="receiveSenderName = 'Handphone Budi'; receiveCustomSenderInput = ''"
+                          :class="receiveSenderName === 'Handphone Budi' && !receiveCustomSenderInput ? 'bg-emerald-500/10 border-emerald-400 text-slate-100 shadow-[0_0_15px_rgba(16,185,129,0.15)] font-bold' : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10'"
+                          class="p-2.5 rounded-xl border text-left transition-all cursor-pointer">
+                    <p class="text-xs leading-normal">Handphone Budi</p>
+                    <p class="text-[9px] font-mono opacity-65">SE-341-BUDI</p>
+                  </button>
+                  <button type="button" @click="receiveSenderName = 'Handphone Ani'; receiveCustomSenderInput = ''"
+                          :class="receiveSenderName === 'Handphone Ani' && !receiveCustomSenderInput ? 'bg-emerald-500/10 border-emerald-400 text-slate-100 shadow-[0_0_15px_rgba(16,185,129,0.15)] font-bold' : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10'"
+                          class="p-2.5 rounded-xl border text-left transition-all cursor-pointer">
+                    <p class="text-xs leading-normal">Handphone Ani</p>
+                    <p class="text-[9px] font-mono opacity-65">SE-982-ANI</p>
+                  </button>
+                  <button type="button" @click="receiveSenderName = 'Handphone Citra'; receiveCustomSenderInput = ''"
+                          :class="receiveSenderName === 'Handphone Citra' && !receiveCustomSenderInput ? 'bg-emerald-500/10 border-emerald-400 text-slate-100 shadow-[0_0_15px_rgba(16,185,129,0.15)] font-bold' : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10'"
+                          class="p-2.5 rounded-xl border text-left transition-all cursor-pointer">
+                    <p class="text-xs leading-normal">Handphone Citra</p>
+                    <p class="text-[9px] font-mono opacity-65">SE-772-CITR</p>
+                  </button>
+                  <button type="button" @click="receiveSenderName = ''; receiveCustomSenderInput = 'Handphone Lain'"
+                          :class="receiveCustomSenderInput ? 'bg-emerald-500/10 border-emerald-400 text-slate-100 shadow-[0_0_15px_rgba(16,185,129,0.15)] font-bold' : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10'"
+                          class="p-2.5 rounded-xl border text-left transition-all cursor-pointer">
+                    <p class="text-xs leading-normal">Lainnya...</p>
+                    <p class="text-[9px] font-mono opacity-65">Input Manual</p>
+                  </button>
+                </div>
+
+                <div x-show="receiveSenderName === ''">
+                  <input type="text" placeholder="Masukkan nama pengirim saldo..." x-model="receiveCustomSenderInput"
+                         class="w-full bg-slate-900 border border-emerald-500/30 rounded-xl px-3 py-2 text-xs font-semibold text-slate-200 outline-none focus:border-emerald-400 transition-colors">
+                </div>
+              </div>
+
+              <div class="space-y-2">
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">2. Nominal Yang Akan Diterima</label>
+                <div class="relative">
+                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 font-mono text-xs text-emerald-400 font-extrabold">Rp</span>
+                  <input type="number" placeholder="0" x-model="receiveAmountInput"
+                         class="w-full bg-slate-900/90 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm font-bold font-mono text-slate-200 outline-none focus:border-emerald-400 transition-colors">
+                </div>
+                <div class="flex flex-wrap gap-1.5 mt-1">
+                  <template x-for="val in ['25000', '50000', '75000', '100000', '250000', '500000']">
+                    <button type="button" @click="receiveAmountInput = val"
+                            :class="receiveAmountInput === val ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300' : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10'"
+                            class="px-2.5 py-1 rounded-lg text-[10px] font-bold font-mono border transition-all cursor-pointer"
+                            x-text="'Rp ' + Number(val).toLocaleString('id-ID')">
+                    </button>
+                  </template>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Channel & trigger -->
+            <div class="glass p-5 rounded-2xl border border-white/10 flex flex-col justify-between space-y-4 bg-gradient-to-br from-emerald-500/5 to-transparent">
+              <div class="space-y-3">
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider col-span-2">3. Metode Penerimaan Terpilih</label>
+                <div class="p-3.5 rounded-xl border bg-emerald-500/10 border-emerald-400/55 text-slate-100 shadow-[0_0_15px_rgba(16,185,129,0.12)]">
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="smartphone" class="w-4 h-4 text-emerald-400 animate-pulse"></i>
+                    <p class="text-xs font-extrabold text-slate-100">Mode NFC Receiver (Mandatory)</p>
+                  </div>
+                  <p class="text-[10px] text-slate-400 ml-6 mt-1 leading-normal">
+                    Mengatur ponsel Anda menjadi terminal penerimaan NFC aktif. Cukup dekatkan ponsel pengirim setelah mengaktifkan sesi.
+                  </p>
+                </div>
+              </div>
+
+              <div class="pt-2">
+                <button type="button" @click="receiveState = 'listening'"
+                        class="w-full px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 border border-emerald-400/30 text-white font-extrabold text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(16,185,129,0.25)] flex items-center justify-center gap-2 transition-all cursor-pointer">
+                  <i data-lucide="download" class="w-3.5 h-3.5 text-white"></i>
+                  <span>Aktifkan Penerimaan Offline</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Listening state -->
+          <div x-show="receiveState === 'listening'" class="glass p-8 rounded-2xl border border-white/10 max-w-xl mx-auto flex flex-col items-center justify-center space-y-6 bg-gradient-to-br from-emerald-500/5 to-transparent">
+            <div class="w-24 h-24 rounded-full border-2 border-emerald-500/30 flex items-center justify-center relative bg-emerald-950/20 animate-pulse">
+              <span class="absolute inset-0 rounded-full border border-dashed border-emerald-400/40 animate-ping opacity-30"></span>
+              <i data-lucide="smartphone" class="w-8 h-8 text-emerald-400 font-bold"></i>
+            </div>
+
+            <div class="space-y-1.5 text-center">
+              <h4 class="text-sm font-extrabold text-slate-200">Menunggu Sentuhan (Tap) NFC Pengirim</h4>
+              <p class="text-xs text-slate-400 max-w-sm leading-normal">
+                Dekatkan ponsel <b class="text-emerald-400 font-semibold" x-text="receiveCustomSenderInput ? receiveCustomSenderInput : receiveSenderName"></b> ke telepon Anda untuk mengirimkan sebesar <b class="font-mono text-emerald-400" x-text="formatRupiah(Number(receiveAmountInput))"></b> via NFC.
+              </p>
+            </div>
+
+            <div class="pt-2 w-full max-w-xs flex flex-col gap-2 font-sans">
+              <button type="button" @click="handlePerformReceive()"
+                      class="w-full px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 border border-emerald-450/30 font-extrabold text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform cursor-pointer">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-slate-950 animate-bounce"></i>
+                <span>Simulasi Sentuh / Tap HP (Pihak Pengirim)</span>
+              </button>
+              <button type="button" @click="receiveState = 'idle'; receiveProgress = 0"
+                      class="w-full text-xs font-semibold text-slate-400 hover:text-white py-1 transition-colors bg-transparent border-transparent text-center cursor-pointer">
+                Batal
+              </button>
+            </div>
+          </div>
+
+          <!-- Receiving processing -->
+          <div x-show="receiveState === 'receiving'" class="glass p-8 rounded-2xl border border-white/10 max-w-xl mx-auto flex flex-col items-center justify-center space-y-6 bg-gradient-to-br from-emerald-500/5 to-transparent animate-fadeIn">
+            <div class="w-20 h-20 rounded-full border border-emerald-500/20 flex items-center justify-center relative bg-emerald-950/20">
+              <span class="absolute inset-0 rounded-full border border-dashed border-emerald-400/40 animate-spin opacity-30"></span>
+              <i data-lucide="download" class="w-8 h-8 text-emerald-400 animate-bounce"></i>
+            </div>
+
+            <div class="space-y-1.5 text-center">
+              <h4 class="text-sm font-bold text-slate-100 uppercase tracking-widest animate-pulse">Sedang Bernegosiasi Enklave Secure...</h4>
+              <p class="text-xs text-slate-400">
+                Menerima nominal <span x-text="formatRupiah(Number(receiveAmountInput))"></span> dari <b class="text-emerald-400" x-text="receiveCustomSenderInput ? receiveCustomSenderInput : receiveSenderName"></b> via secure element P2P.
+              </p>
+            </div>
+
+            <div class="w-full space-y-1.5">
+              <div class="flex justify-between text-[10px] font-mono text-slate-400 font-extrabold">
+                <span>VERIFIKASI GRAPH DATA TRANSFER</span>
+                <span x-text="receiveProgress + '%'"></span>
+              </div>
+              <div class="w-full h-1.5 rounded-full bg-white/5 overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-150" :style="'width: ' + receiveProgress + '%'"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Receive success dashboard -->
+          <div x-show="receiveState === 'success'" class="glass p-8 rounded-2xl border border-emerald-500/20 max-w-xl mx-auto flex flex-col items-center justify-center space-y-6 bg-gradient-to-br from-emerald-500/5 to-transparent shadow-[0_0_20px_rgba(16,185,129,0.06)]">
+            <div class="w-14 h-14 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center text-green-400 shadow-[0_0_20px_rgba(34,197,94,0.15)] animate-bounce">
+              <i data-lucide="check" class="w-6 h-6 text-green-400"></i>
+            </div>
+
+            <div class="space-y-1 text-center font-sans">
+              <h4 class="text-lg font-bold text-green-400 font-display">Berhasil Menerima Saldo!</h4>
+              <p class="text-xs text-slate-400 max-w-md mx-auto leading-normal">
+                Dana offline berhasil didekripsi, diferivikasi keamanannya, dan didepositkan masuk langsung ke dalam Secure Element telepon Anda.
+              </p>
+            </div>
+
+            <div class="bg-slate-950 border border-white/5 rounded-xl p-4 text-xs w-full text-left space-y-2 font-mono">
+              <div class="flex justify-between items-center pb-2 border-b border-white/5">
+                <span class="text-slate-500 text-[10px]">Asal Pengirim:</span>
+                <span class="text-slate-200 font-semibold" x-text="receiveCustomSenderInput ? receiveCustomSenderInput : receiveSenderName"></span>
+              </div>
+              <div class="flex justify-between items-center pb-2 border-b border-white/5">
+                <span class="text-slate-500 text-[10px]">Nominal Ditambahkan:</span>
+                <span class="text-green-400 font-bold" x-text="'+ ' + formatRupiah(Number(receiveAmountInput))"></span>
+              </div>
+              <div class="flex justify-between items-center pb-2 border-b border-white/5">
+                <span class="text-slate-500 text-[10px]">Total Saldo RDN:</span>
+                <span class="text-slate-300" x-text="formatRupiah(offlineBalance)"></span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-slate-500 text-[10px]">Status Pembukuan:</span>
+                <span class="text-amber-400 font-bold uppercase flex items-center gap-1"><span class="w-1 h-1 rounded-full bg-amber-400 animate-pulse"></span> PENDING SYNC</span>
+              </div>
+            </div>
+
+            <div class="flex gap-2 w-full font-sans">
+              <button type="button" @click="receiveState = 'idle'; receiveProgress = 0"
+                      class="flex-1 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 hover:text-white border border-white/10 text-xs font-bold transition-all cursor-pointer">
+                Terima Lagi
+              </button>
+              <button type="button" @click="navigateTo(5)"
+                      class="flex-1 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold transition-all border border-emerald-500/30 cursor-pointer">
+                Lihat Mutasi Ledger
+              </button>
+            </div>
+          </div>
+
+          <div class="flex justify-end items-center pt-8 border-t border-white/5">
+            <button @click="navigateTo(1)"
+                    class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white cursor-pointer border border-transparent bg-transparent">
+              <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Kembali ke Beranda
+            </button>
+          </div>
+        </div>
+
+        <!-- SCREEN 17: Customer Service & AI Support Center -->
+        <div x-show="currentScreen === 17" class="animate-fadeIn space-y-6">
+          <div class="space-y-4">
+            <!-- Header Badge -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/5">
+              <div class="space-y-1">
+                <span class="px-2.5 py-0.5 rounded text-[9px] bg-red-500/10 text-red-650 border border-red-500/20 font-bold uppercase tracking-wider flex items-center gap-1.5 w-fit">
+                  <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                  Live Support Center (24/7)
+                </span>
+                <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-white font-display">Pusat Bantuan & Customer Service</h2>
+                <p class="text-xs text-slate-400">Hubungi CS, selesaikan kendala transfer offline, atau buat tiket laporan resmi Bank Indonesia.</p>
+              </div>
+
+              <!-- CS Rating -->
+              <div class="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl p-3">
+                <div class="w-9 h-9 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500 font-extrabold text-sm">
+                  ★
+                </div>
+                <div>
+                  <p class="text-[10px] text-slate-400 leading-none">Kepuasan Layanan</p>
+                  <p class="text-xs font-bold text-slate-200 mt-1">99.8% Responsif</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Selector Tabs -->
+            <div class="grid grid-cols-3 gap-2 p-1.5 bg-slate-900/60 rounded-xl border border-white/5">
+              <button type="button" @click="csActiveTab = 'chat'"
+                      :class="csActiveTab === 'chat' ? 'bg-red-500/20 text-red-600 border border-red-500/30 font-bold' : 'text-slate-400 hover:text-white border border-transparent'"
+                      class="py-2 px-3 rounded-lg text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
+                <span>AI Live Chat</span>
+              </button>
+              <button type="button" @click="csActiveTab = 'ticket'; ticketSuccessMessage = ''"
+                      :class="csActiveTab === 'ticket' ? 'bg-red-500/20 text-red-600 border border-red-500/30 font-bold' : 'text-slate-400 hover:text-white border border-transparent'"
+                      class="py-2 px-3 rounded-lg text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                <span>Buat Tiket</span>
+              </button>
+              <button type="button" @click="csActiveTab = 'faq'"
+                      :class="csActiveTab === 'faq' ? 'bg-red-500/20 text-red-600 border border-red-500/30 font-bold' : 'text-slate-400 hover:text-white border border-transparent'"
+                      class="py-2 px-3 rounded-lg text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                <i data-lucide="help-circle" class="w-3.5 h-3.5"></i>
+                <span>FAQ Pintar</span>
+              </button>
+            </div>
+
+            <!-- Panel 1: Chat -->
+            <div x-show="csActiveTab === 'chat'" class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              <!-- Left Area -->
+              <div class="lg:col-span-2 glass rounded-2xl border border-white/10 flex flex-col h-[420px] overflow-hidden bg-slate-900/10">
+                <div class="p-3 border-b border-white/5 bg-slate-950/70 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <div class="relative">
+                      <div class="w-7 h-7 rounded-full bg-red-650 flex items-center justify-center text-white text-xs font-bold font-display select-none">CS</div>
+                      <span class="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-green-400 border border-slate-950 animate-pulse"></span>
+                    </div>
+                    <div>
+                      <p class="text-xs font-bold text-slate-200">Asisten AI RDN</p>
+                      <p class="text-[9px] text-green-500 font-semibold leading-none mt-0.5 font-mono">Online • Siap 24 Jam</p>
+                    </div>
+                  </div>
+                  <span class="text-[10px] font-mono text-slate-500">ID Node Support: BI-CS-99</span>
+                </div>
+
+                <!-- Chat History Box -->
+                <div class="p-4 flex-1 overflow-y-auto space-y-3.5 custom-scrollbar bg-black/5" id="cs-chat-viewport">
+                  <template x-for="msg in csChatHistory">
+                    <div :class="msg.sender === 'user' ? 'ml-auto items-end' : 'mr-auto items-start'" class="flex flex-col max-w-[85%]">
+                      <div :class="msg.sender === 'user' ? 'bg-red-650 text-white rounded-tr-none' : 'bg-white/5 text-slate-200 border border-white/5 rounded-tl-none'"
+                           class="px-3.5 py-2.5 rounded-2xl text-xs leading-relaxed font-medium" x-text="msg.text">
+                      </div>
+                      <span class="text-[9px] text-slate-500 mt-1 font-mono" x-text="msg.time"></span>
+                    </div>
+                  </template>
+                </div>
+
+                <!-- Input panel -->
+                <div class="p-2 border-t border-white/5 bg-slate-950/70 flex gap-2">
+                  <input type="text" x-model="csInput" @keydown.enter="handleSendCSMessage()"
+                         placeholder="Ketik pertanyaan atau keluhan Anda di sini..."
+                         class="flex-1 bg-white/5 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-red-500/50">
+                  <button type="button" @click="handleSendCSMessage()"
+                          class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-extrabold uppercase transition-all cursor-pointer flex items-center justify-center shrink-0">
+                    Kirim
+                  </button>
+                </div>
+              </div>
+
+              <!-- Right Area: presets -->
+              <div class="space-y-4">
+                <div class="glass p-4 rounded-xl border border-white/5 space-y-3">
+                  <h4 class="text-xs font-bold text-slate-200 uppercase tracking-widest flex items-center gap-1.5 font-display text-red-500">
+                    <i data-lucide="zap" class="w-3.5 h-3.5"></i> Pertanyaan Populer
+                  </h4>
+                  <p class="text-[10px] text-slate-400 leading-normal">Klik salah satu tombol bantuan instan di bawah:</p>
+                  
+                  <div class="space-y-1.5">
+                    <button type="button" @click="csInput = 'NFC Tap tidak merespon saat di dekatkan ke ponsel pengirim'; handleSendCSMessage();"
+                            class="w-full text-left p-2 rounded-lg bg-white/5 hover:bg-white/10 text-[11px] text-slate-300 font-semibold border border-transparent hover:border-white/5 cursor-pointer transition-all leading-normal block">
+                      NFC Tap Tidak Merespon?
+                    </button>
+                    <button type="button" @click="csInput = 'Bagaimana cara melakukan sinkronisasi saldo offline kembali ke server?'; handleSendCSMessage();"
+                            class="w-full text-left p-2 rounded-lg bg-white/5 hover:bg-white/10 text-[11px] text-slate-300 font-semibold border border-transparent hover:border-white/5 cursor-pointer transition-all leading-normal block">
+                      Cara Sinkronisasi Saldo?
+                    </button>
+                    <button type="button" @click="csInput = 'Berapa batas nominal maksimal saldo di dalam secure element?'; handleSendCSMessage();"
+                            class="w-full text-left p-2 rounded-lg bg-white/5 hover:bg-white/10 text-[11px] text-slate-300 font-semibold border border-transparent hover:border-white/5 cursor-pointer transition-all leading-normal block">
+                      Berapa Limit Transaksi?
+                    </button>
+                    <button type="button" @click="csInput = 'Ponsel saya hilang, apakah saldo Rupiah Digital saya aman?'; handleSendCSMessage();"
+                            class="w-full text-left p-2 rounded-lg bg-white/5 hover:bg-white/10 text-[11px] text-slate-300 font-semibold border border-transparent hover:border-white/5 cursor-pointer transition-all leading-normal block">
+                      Ponsel Hilang, Saldo Amankah?
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Contacts info -->
+                <div class="glass p-4 rounded-xl border border-white/5 space-y-3.5 bg-gradient-to-br from-red-500/5 to-transparent">
+                  <h4 class="text-xs font-bold text-slate-200 uppercase tracking-widest font-display">Kontak Resmi Bank Indonesia</h4>
+                  <div class="space-y-2 text-xs">
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-slate-950/60 border border-white/5">
+                      <span class="text-slate-400 text-[10px]">Hotline CS RDN</span>
+                      <b class="text-red-500 font-mono">1500-RDN (736)</b>
+                    </div>
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-slate-950/60 border border-white/5">
+                      <span class="text-slate-400 text-[10px]">Email Resmi</span>
+                      <span class="text-slate-300 font-semibold font-mono">support@bi.go.id</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Panel 2: Tickets -->
+            <div x-show="csActiveTab === 'ticket'" class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              <div class="lg:col-span-2 glass p-5 rounded-2xl border border-white/10 space-y-4 bg-slate-900/10">
+                <h3 class="text-sm font-bold text-slate-200 uppercase tracking-widest font-display">Buat Tiket Kendala Baru</h3>
+                <p class="text-xs text-slate-400 leading-normal">Jika Anda mengalami masalah perangkat keras, Secure Element error, atau selisih pembukuan ledger, silakan buat laporan terenkripsi untuk divalidasi validator Bank Indonesia.</p>
+                
+                <div x-show="ticketSuccessMessage" class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400 font-bold animate-pulse" x-text="ticketSuccessMessage">
+                </div>
+
+                <div class="space-y-3 font-sans">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                      <label class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Kategori Masalah</label>
+                      <select x-model="ticketCategory"
+                              class="w-full bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 outline-none focus:border-red-500/55">
+                        <option>Konektivitas & Sync</option>
+                        <option>Secure Element Hardware Error</option>
+                        <option>NFC / Touch Sensor Error</option>
+                        <option>Selisih Saldo Ledger</option>
+                        <option>Verifikasi Biometrik Wajah</option>
+                        <option>Lainnya</option>
+                      </select>
+                    </div>
+                    <div class="space-y-1">
+                      <label class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Subjek Laporan</label>
+                      <input type="text" x-model="ticketSubject" placeholder="Contoh: Kode Error SE-440 saat Tap NFC"
+                             class="w-full bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 outline-none focus:border-red-500/55">
+                    </div>
+                  </div>
+
+                  <div class="space-y-1">
+                    <label class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Deskripsi Lengkap Kendala</label>
+                    <textarea x-model="ticketDescription" rows="4" placeholder="Harap jelaskan urutan kejadian kendala, tipe smartphone, dan nominal saldo saat kendala terjadi..."
+                              class="w-full bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 outline-none focus:border-red-500/55"></textarea>
+                  </div>
+
+                  <button type="button" @click="handleCreateTicket()"
+                          class="w-full py-3 rounded-xl bg-red-650 hover:bg-red-500 text-white font-extrabold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-lg shadow-red-500/10 active:scale-95">
+                    Tandatangani & Daftarkan Tiket Laporan (Secure Sign)
+                  </button>
+                </div>
+              </div>
+
+              <!-- History list -->
+              <div class="glass p-5 rounded-2xl border border-white/10 space-y-4">
+                <h3 class="text-sm font-bold text-slate-200 uppercase tracking-widest flex items-center gap-1.5 font-display">
+                  <i data-lucide="file-text" class="w-4 h-4 text-slate-400"></i> Riwayat Tiket Aktif
+                </h3>
+                <p class="text-[10px] text-slate-400 leading-normal">Semua laporan terenkripsi Anda terikat ke Node ID Anda:</p>
+                
+                <div class="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar">
+                  <template x-for="t in csTickets" :key="t.id">
+                    <div class="p-3.5 rounded-xl bg-slate-950 border border-white/5 space-y-2 text-left">
+                      <div class="flex justify-between items-center">
+                        <span class="text-[9px] font-mono text-slate-500" x-text="t.id + ' • ' + t.date"></span>
+                        <span :class="t.status === 'Resolved' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/15 text-amber-500 border border-amber-500/20 animate-pulse'"
+                              class="px-2 py-0.5 rounded text-[8px] font-bold uppercase" x-text="t.status === 'Resolved' ? 'SELESAI' : 'DIANTRIKAN'">
+                        </span>
+                      </div>
+                      <p class="text-xs font-bold text-slate-200" x-text="t.subject"></p>
+                      <p class="text-[10px] text-slate-400 leading-relaxed" x-text="t.description"></p>
+                      
+                      <div x-show="t.reply" class="p-2 border-t border-dashed border-white/10 mt-1 space-y-1">
+                        <p class="text-[9px] uppercase font-bold text-red-400">Respons Bank Indonesia:</p>
+                        <p class="text-[10px] text-slate-300 italic" x-text="t.reply"></p>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </div>
+
+            <!-- Panel 3: FAQs -->
+            <div x-show="csActiveTab === 'faq'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <template x-for="item in [
+                {
+                  q: 'Bagaimana jika ponsel penerima tidak memiliki NFC?',
+                  a: 'Jika salah satu ponsel tidak dilengkapi chip NFC, Anda dapat melakukan pembayaran offline menggunakan moda QRIS Offline Dinamis. Penerima mengenerate QR nominal offline, dan Anda memindai QR tersebut dari layar kamera tanpa kuota internet.'
+                },
+                {
+                  q: 'Apakah saldo berkurang jika aplikasi direfresh / diuninstall?',
+                  a: 'Sistem keamanan RDN menyimpan saldo ke dalam hardware-backed Secure Element di sistem operative. Selama Anda tidak menghapus cache Secure Element system, saldo Anda aman. Anda juga dapat memicu sinkronisasi berkala ke blockchain server BI.'
+                },
+                {
+                  q: 'Berapa lama transaksi offline pending dapat ditahan?',
+                  a: 'Transaksi offline pending yang tersimpan di telepon Anda dapat ditahan tanpa batas waktu hingga Anda mendapatkan internet. Namun, disarankan sinkronisasi dilakukan dalam jangka waktu 30 hari untuk verifikasi ledger utama.'
+                },
+                {
+                  q: 'Apa bedanya QRIS Offline RDN dengan QRIS standar?',
+                  a: 'QRIS standar memerlukan koneksi internet aktif di sisi merchant maupun konsumen untuk melakukan otorisasi ke bank pusat. QRIS Offline RDN menggunakan kriptografi asimetris offline sehingga validasi saldo langsung dilakukan lokal oleh enclave hardware.'
+                },
+                {
+                  q: 'Bagaimana cara top up saldo offline RDN?',
+                  a: 'Masuk ke Beranda RDN Utama saat Anda online, pilih \'Top-Up Saldo Offline RDN\', masukkan nominal pemindahan dari tabungan bank konvensional Anda ke Secure Element lokal ponsel Anda.'
+                },
+                {
+                  q: 'Bagaimana perlindungan jika sidik jari atau wajah dipalsukan?',
+                  a: 'Kamera pengaman RDN menggunakan teknologi deteksi kedalaman (Liveness Detection 3D) untuk mencegah teknologi spoofing dari foto kertas, layar lain, ataupun patung. Data biometrik disimpan lokal di enklave sirkuit terpisah.'
+                }
+              ]">
+                <div class="p-4 rounded-xl glass border border-white/5 bg-slate-950/20 text-left space-y-1.5 hover:bg-slate-950/40 transition-colors">
+                  <h4 class="text-xs font-extrabold text-slate-200 flex items-start gap-1.5 font-display text-red-500 leading-tight">
+                    <span class="text-[11px] font-mono text-red-500">Q.</span>
+                    <span x-text="item.q"></span>
+                  </h4>
+                  <p class="text-[11px] text-slate-400 leading-normal pl-4" x-text="item.a"></p>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <div class="flex justify-end items-center pt-8 border-t border-white/5">
+            <button @click="navigateTo(1)"
+                    class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white cursor-pointer border border-transparent bg-transparent">
+              <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Kembali ke Beranda
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- COLLAPSIBLE DEBUGGING / TESTING NAVIGATOR PANEL AT FOOTER -->
+  <div x-show="!isDeveloperPanelHidden" x-transition:enter="transition duration-150" class="w-full max-w-6xl mx-auto mt-6">
+    <div class="glass rounded-2xl p-4 border border-white/10 shadow-lg select-none">
+      <div class="flex items-center justify-between mb-3 border-b border-white/5 pb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse blink animate-ping"></span>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-200 font-display">
+            Pengontrol Prototipe RDN Standalone (14 Layar Multilevel)
+          </h3>
+        </div>
+        <div class="flex items-center gap-2">
+          <button @click="showTesterNav = !showTesterNav"
+                  class="text-xs text-red-500 font-bold px-2.5 py-1 rounded bg-red-50 hover:bg-red-100 border border-red-200/40 cursor-pointer"
+                  x-text="showTesterNav ? 'Sembunyikan Panel' : 'Tampilkan Panel'"></button>
+          <button @click="isDeveloperPanelHidden = true"
+                  class="text-[10px] text-slate-400 hover:text-red-500 font-semibold px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 border border-white/10 cursor-pointer"
+                  title="Sembunyikan Sepenuhnya (dapat ditampilkan lagi via sidebar status)">
+            Sembunyikan Sepenuhnya X
+          </button>
+        </div>
+      </div>
+
+      <div x-show="showTesterNav" x-transition class="space-y-3">
+        <p class="text-[11px] text-slate-400 leading-normal">
+          Gunakan tombol jalan pintas di bawah ini untuk menguji masing-masing dari <b>14 Layar Navigasi</b> secara langsung, termasuk melakukan penambahan transaksi simulasi baru dengan pemicu secure element QR pay (Layar 14):
+        </p>
+        
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+          <template x-for="(name, index) in screenNames" :key="index">
+            <button @click="navigateTo(index + 1)"
+                    :class="currentScreen === (index + 1) ? 'bg-red-600 text-white font-extrabold border-red-500 shadow-md shadow-red-500/10' : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'"
+                    class="text-[11px] px-2.5 py-1.5 rounded-lg text-left transition-all border cursor-pointer">
+              <span class="block text-[8px] opacity-75 font-mono" x-text="'Layar ' + (index + 1)"></span>
+              <span class="truncate block font-semibold text-xs" x-text="name.split(' — ')[0].split(' RDN')[0].split(' (Dashboard')[0]"></span>
+            </button>
+          </template>
+        </div>
+
+        <div class="bg-red-500/5 p-3.5 rounded-xl border border-red-500/10 flex flex-wrap gap-4 justify-between items-center text-[10px] text-slate-400">
+          <p class="leading-relaxed">
+            <b>Petunjuk Navigasi Otomatis (XPaths):</b><br>
+            - Di Layar 2 ("Selamat Datang"): ketuk tombol <b>"Mulai Sekarang"</b> &rarr; menuju Layar 3.<br>
+            - Di Layar 5 ("Riwayat Transaksi"): ketuk tombol <b>"Pindai QR"</b> &rarr; menuju Layar 14 (Simulasi Pembelian QR Baru).<br>
+            - Di Layar 9 ("Enkripsi AES-256"): ketuk <b>"RDN Security"</b> &rarr; menuju Layar 4, atau ketuk tombol <b>"Verify Node"</b> &rarr; menuju Layar 10.<br>
+            - Di Layar 10 ("Verifikasi Node Berhasil"): ketuk link <b>"RDN Infrastructure / Infrastruktur"</b> &rarr; menuju Layar 11.
+          </p>
+          
+          <div class="flex items-center gap-1.5 font-mono text-[9px] bg-slate-900 border border-white/5 px-2.5 py-1 rounded text-slate-300">
+            <span>Riwayat Skenario:</span>
+            <span class="text-red-500 font-extrabold" x-text="navHistory.join(' → ')"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 1: SUGGESTED FACE OR FINGERPRINT UNLOCK ON INITIAL ENTRY -->
+  <div x-show="showEntryUnlockModal"
+       x-transition:enter="transition ease-out duration-300"
+       x-transition:enter-start="opacity-0"
+       x-transition:enter-end="opacity-100"
+       x-transition:leave="transition ease-in duration-200"
+       x-transition:leave-start="opacity-100"
+       x-transition:leave-end="opacity-0"
+       class="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-2xl flex items-center justify-center p-4 sm:p-6"
+       style="background-color: rgba(248, 250, 252, 0.94);">
+    
+    <div x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="transform scale-95 translate-y-4"
+         x-transition:enter-end="transform scale-100 translate-y-0"
+         class="max-w-md w-full glass rounded-3xl border border-white/10 p-6 md:p-8 space-y-6 relative overflow-hidden text-center text-slate-900">
+      
+      <!-- Subtle background glow -->
+      <div class="absolute -right-24 -top-24 w-48 h-48 rounded-full bg-red-600/5 blur-xl"></div>
+      
+      <div class="space-y-2">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-red-600 text-[10px] font-extrabold border border-red-100 uppercase tracking-widest font-mono">
+          🔒 KEAMANAN SECURE ELEMENT BIOMETRIK
+        </span>
+        <h3 class="text-xl font-bold tracking-tight text-slate-100 font-display"
+            x-text="entryUnlockMethod === 'face' ? 'Buka Dompet RDN dengan Pemindaian Wajah' : 'Buka Dompet RDN dengan Sidik Jari'">
+        </h3>
+        <p class="text-xs text-slate-400 leading-relaxed font-sans"
+            x-text="entryUnlockMethod === 'face' 
+              ? 'Sistem mendeteksi login baru pada node offline RDN. Disarankan membuka ledger Anda memakai verifikasi wajah (Face Recognition) sekali saja untuk otorisasi beranda.'
+              : 'Gunakan autentikasi sidik jari untuk mengonfirmasi identitas Anda di Secure Enclave lokal tanpa koneksi internet.'">
+        </p>
+      </div>
+
+      <!-- Toggle tabs to let user choose method -->
+      <div class="bg-slate-800/80 p-0.5 rounded-xl border border-white/5 flex gap-1">
+        <button
+          type="button"
+          @click="entryUnlockMethod = 'fingerprint'; entryUnlockScanning = false; entryUnlockProgress = 0; entryUnlockSuccess = false; refreshIcons()"
+          :disabled="entryUnlockScanning"
+          :class="entryUnlockMethod === 'fingerprint'
+            ? 'bg-red-600 text-white shadow-md shadow-red-500/10 font-bold'
+            : 'text-slate-400 hover:text-slate-100 hover:bg-white/5'"
+          class="flex-1 py-1.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+        >
+          <i data-lucide="fingerprint" class="w-3.5 h-3.5"></i>
+          <span>Sidik Jari</span>
+        </button>
+        <button
+          type="button"
+          @click="entryUnlockMethod = 'face'; entryUnlockScanning = false; entryUnlockProgress = 0; entryUnlockSuccess = false; refreshIcons()"
+          :disabled="entryUnlockScanning"
+          :class="entryUnlockMethod === 'face'
+            ? 'bg-red-600 text-white shadow-md shadow-red-500/10 font-bold'
+            : 'text-slate-400 hover:text-slate-100 hover:bg-white/5'"
+          class="flex-1 py-1.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+        >
+          <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
+          <span>Deteksi Wajah</span>
+        </button>
+      </div>
+
+      <!-- Laser sweep scanner visual container with avatars -->
+      <div class="space-y-4">
+        <div 
+          @click="handleEntryBiometricScan()"
+          class="w-48 h-48 rounded-full border-2 border-emerald-400/40 relative flex items-center justify-center overflow-hidden bg-white p-1 bg-opacity-80 shadow-[0_0_24px_rgba(52,211,153,0.1)] mx-auto cursor-pointer active:scale-95 transition-transform"
+        >
+          <!-- Outer spinning dashed ring -->
+          <div class="absolute inset-0 rounded-full border border-dashed border-red-500/20 animate-spin" style="animation-duration: 8s;"></div>
+          
+          <!-- Inner Face/Fingerprint Visual -->
+          <div class="w-full h-full rounded-full bg-slate-900 border border-white/5 overflow-hidden relative flex items-center justify-center">
+            
+            <!-- SUCCESS STATE -->
+            <div x-show="entryUnlockSuccess" class="flex flex-col items-center justify-center space-y-1 animate-fadeIn">
+              <i data-lucide="check-circle-2" class="w-12 h-12 text-green-500 animate-bounce"></i>
+              <span class="text-[9px] text-green-600 font-mono font-extrabold uppercase tracking-wider block">AKSES DITERIMA</span>
+            </div>
+            
+            <!-- FACE SCAN STANDBY & ACTIVE STATE -->
+            <div x-show="!entryUnlockSuccess && entryUnlockMethod === 'face'" class="w-full h-full relative flex items-center justify-center">
+              <template x-if="entryUnlockScanning">
+                <div class="w-full h-full relative">
+                  <img 
+                    src="https://api.dicebear.com/7.x/avataaars/svg?seed=RDN" 
+                    class="w-full h-full object-cover rounded-full bg-slate-100 scale-110 filter saturate-150" 
+                    alt="Face Scan Active avatar"
+                    referrerPolicy="no-referrer"
+                  />
+                  <!-- Sweeping laser line scanning face -->
+                  <div class="absolute left-0 top-0 right-0 h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent shadow-[0_0_12px_#ef4444] animate-bounce w-full z-10" style="animation-duration: 1.5s;"></div>
+                  <div class="absolute inset-0 bg-red-500/10 flex items-center justify-center">
+                    <span class="text-[10px] font-mono font-bold text-red-600 bg-white/95 px-2 py-0.5 rounded border border-red-500/20 shadow-md" x-text="'PINDAI ' + entryUnlockProgress + '%'"></span>
+                  </div>
+                </div>
+              </template>
+              <template x-if="!entryUnlockScanning">
+                <div class="text-center space-y-2.5 p-4 animate-fadeIn flex flex-col items-center justify-center">
+                  <img 
+                    src="https://api.dicebear.com/7.x/avataaars/svg?seed=RDN" 
+                    class="w-16 h-16 mx-auto object-cover rounded-full bg-slate-100 border border-slate-200 opacity-60 filter grayscale" 
+                    alt="Standby Face avatar"
+                    referrerPolicy="no-referrer"
+                  />
+                  <span class="text-[8px] text-slate-400 font-mono block tracking-widest font-extrabold uppercase">KAMERA STANDBY</span>
+                </div>
+              </template>
+            </div>
+
+            <!-- FINGERPRINT STANDBY & ACTIVE STATE -->
+            <div x-show="!entryUnlockSuccess && entryUnlockMethod === 'fingerprint'" class="w-full h-full relative flex items-center justify-center">
+              <template x-if="entryUnlockScanning">
+                <div class="w-full h-full relative flex flex-col items-center justify-center bg-red-500/5">
+                  <i data-lucide="fingerprint" class="w-14 h-14 text-red-500 animate-pulse"></i>
+                  <!-- Sweeping round scanner effect -->
+                  <div class="absolute inset-4 rounded-full border border-dashed border-red-500/40 animate-spin" style="animation-duration: 3s;"></div>
+                  <div class="absolute inset-0 bg-red-500/15 flex items-center justify-center">
+                    <span class="text-[10px] font-mono font-bold text-red-600 bg-white/95 px-2 py-0.5 rounded border border-red-500/20 shadow-md" x-text="'PINDAI ' + entryUnlockProgress + '%'"></span>
+                  </div>
+                </div>
+              </template>
+              <template x-if="!entryUnlockScanning">
+                <div class="text-center space-y-2 p-4 flex flex-col items-center justify-center animate-fadeIn">
+                  <i data-lucide="fingerprint" class="w-14 h-14 text-red-500 hover:text-red-400 hover:scale-105 transition-all"></i>
+                  <span class="text-[8px] text-slate-400 font-mono block tracking-widest font-extrabold uppercase animate-pulse mt-1">SENTUH SENSOR</span>
+                </div>
+              </template>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Progress Indicators -->
+        <div class="h-10 flex flex-col justify-center">
+          <div x-show="entryUnlockScanning" class="space-y-1.5 animate-fadeIn">
+            <div class="flex justify-between items-center text-[9px] text-slate-400 font-mono">
+              <span x-text="entryUnlockMethod === 'face' ? 'MEMINDAI WAJAH PEMILIK...' : 'MEMVALIDASI SIDIK JARI...'"></span>
+              <span x-text="entryUnlockProgress + '%'"></span>
+            </div>
+            <div class="w-full h-1 bg-slate-200 rounded-full overflow-hidden">
+              <div class="h-full bg-red-600 transition-all duration-100" :style="'width: ' + entryUnlockProgress + '%'"></div>
+            </div>
+          </div>
+
+          <div x-show="entryUnlockSuccess" class="animate-fadeIn">
+            <p class="text-xs text-green-600 font-bold uppercase tracking-wide">
+              Akses Diterima! Memuat Dompet RDN...
+            </p>
+          </div>
+
+          <div x-show="!entryUnlockScanning && !entryUnlockSuccess" class="animate-fadeIn">
+            <span class="text-[9px] text-slate-400 uppercase tracking-wider font-semibold font-mono" x-text="entryUnlockMethod === 'face' ? '[KAMERA CO-PROCESSOR READY]' : '[FP ENCLAVE SENSOR READY]'"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Buttons -->
+      <div class="flex flex-col gap-2 pt-1">
+        <button
+          type="button"
+          @click="handleEntryBiometricScan()"
+          :disabled="entryUnlockScanning || entryUnlockSuccess"
+          :class="entryUnlockScanning || entryUnlockSuccess
+            ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+            : 'bg-red-600 hover:bg-red-500 text-white font-extrabold hover:scale-[1.01] active:scale-95 shadow-lg shadow-red-500/10 cursor-pointer border border-red-500/30'"
+          class="w-full py-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2"
+        >
+          <template x-if="entryUnlockMethod === 'face'">
+            <div class="flex items-center justify-center gap-2">
+              <i data-lucide="user-check" class="w-3.5 h-3.5 text-white"></i>
+              <span x-text="entryUnlockScanning ? 'Memproses Deteksi Wajah...' : 'Mulai Pemindaian Wajah'"></span>
+            </div>
+          </template>
+          <template x-if="entryUnlockMethod === 'fingerprint'">
+            <div class="flex items-center justify-center gap-2">
+              <i data-lucide="fingerprint" class="w-3.5 h-3.5 text-white"></i>
+              <span x-text="entryUnlockScanning ? 'Memproses Sidik Jari...' : 'Sentuh Sensor Sidik Jari'"></span>
+            </div>
+          </template>
+        </button>
+
+        <button
+          type="button"
+          @click="showEntryUnlockModal = false"
+          :disabled="entryUnlockScanning"
+          class="w-full py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 hover:text-slate-900 border border-slate-200 text-xs font-bold font-sans transition-colors cursor-pointer text-slate-300 disabled:opacity-50"
+        >
+          Masuk Dengan PIN Cadangan
+        </button>
+      </div>
+
+      <!-- Informative warning text -->
+      <p class="text-[9px] text-slate-400 font-mono tracking-wide leading-relaxed">
+        Biometrik divalidasi lokal secara offline di Secure Enclave Chip. Tidak ada rekaman wajah maupun sidik jari yang keluar dari hardware ini.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    function rdnApp() {
+      return {
+        currentScreen: 1,
+        showSidebar: true,
+        showTesterNav: false,
+        showEntryUnlockModal: true,
+        entryUnlockMethod: 'fingerprint',
+        entryUnlockScanning: false,
+        entryUnlockProgress: 0,
+        entryUnlockSuccess: false,
+        isDeveloperPanelHidden: true,
+        offlineBalance: 4250000,
+        selectedTxId: 'tx-1',
+        isSynced: false,
+        syncLoading: false,
+        syncProgress: 0,
+        syncPhase: '',
+        syncLogs: [],
+        faceScanActive: false,
+        faceScanProgress: 0,
+        paymentMode: 'qr',
+        scanState: 'idle',
+        scanProgress: 0,
+        customMerchantInput: '',
+        customAmountInput: '',
+        scanSelectedMerchant: 'Warung Pojok Bu Sri',
+        scanSelectedCategory: 'Kuliner',
+        scanSelectedAmount: 15000,
+        navHistory: [1],
+        selectedCategories: ['Kebutuhan Pokok'],
+        availableCategories: ['Kebutuhan Pokok', 'Transportasi', 'Kuliner', 'Komunikasi', 'Kesehatan', 'Gaya Hidup'],
+
+        // P2P Transfer (Screen 15) State
+        transferTargetDevice: 'Handphone Ani',
+        transferCustomDeviceInput: '',
+        transferAmountInput: '50000',
+        transferState: 'idle',
+        transferProgress: 0,
+
+        // P2P Receive (Screen 16) State
+        receiveSenderName: 'Handphone Budi',
+        receiveCustomSenderInput: '',
+        receiveAmountInput: '75000',
+        receiveState: 'idle',
+        receiveProgress: 0,
+
+        // Customer Service (Screen 17) State
+        csActiveTab: 'chat',
+        csInput: '',
+        csChatHistory: [
+          {
+            sender: 'agent',
+            text: 'Halo! Selamat datang di Pusat Layanan Pelanggan Rupiah Digital Offline (RDN) Hub. Saya adalah Asisten AI CS Support Anda. Ada kendala transaksi offline RDN, Sinkronisasi Ledger, atau verifikasi biometrik yang bisa saya bantu hari ini?',
+            time: '08:00 WIB'
+          }
+        ],
+        csTickets: [
+          {
+            id: 'TKT-10925',
+            subject: 'Kendala Sinkronisasi Ledger di Daerah Pegunungan',
+            category: 'Konektivitas & Sync',
+            description: 'Mencoba melakukan sinkronisasi saldo offline setelah berada di luar jaringan selama 3 hari. Terdapat tulisan error SE-403.',
+            status: 'Resolved',
+            date: '05/22/2026',
+            reply: 'Terima kasih atas laporannya. Kendala SE-403 telah berhasil ditangani oleh tim teknis Bank Indonesia dengan mereset sertifikat Secure Element node Anda. Silakan dicoba kembali.'
+          }
+        ],
+        ticketSubject: '',
+        ticketCategory: 'Konektivitas & Sync',
+        ticketDescription: '',
+        ticketSuccessMessage: '',
+        
+        screenNames: [
+          "RDN Homepage — Layar Beranda Utama",
+          "Selamat Datang di RDN",
+          "Pilih Kategori Minat Anda",
+          "Cara Kerja Transaksi Offline RDN",
+          "Riwayat Transaksi Offline RDN (Dashboard Utama)",
+          "Detail Transaksi Offline RDN",
+          "Penjelasan Status Transaksi Offline RDN",
+          "Keamanan Secure Element RDN",
+          "Keamanan Enkripsi AES-256 RDN",
+          "Verifikasi Node Berhasil",
+          "Verifikasi Wajah Biometrik RDN",
+          "Ringkasan Verifikasi Identitas RDN",
+          "Konfirmasi Pengiriman Verifikasi RDN",
+          "Pindai QR & Bayar Offline RDN",
+          "Transfer Rupiah Digital Offline (P2P)",
+          "Terima Saldo Rupiah Digital Offline (P2P)",
+          "Customer Service — Pusat Bantuan RDN"
+        ],
+
+        transactions: [
+          {
+            id: 'tx-1',
+            merchant: 'Warung Madura Jaya',
+            category: 'Kebutuhan Pokok',
+            time: '14:02 WIB',
+            amount: 85000,
+            status: 'Pending',
+            initials: 'WM',
+            bgColor: 'bg-orange-500/20',
+            textColor: 'text-orange-400'
+          },
+          {
+            id: 'tx-2',
+            merchant: 'Trans Jakarta - Blok M',
+            category: 'Transportasi',
+            time: '10:45 WIB',
+            amount: 3500,
+            status: 'Pending',
+            initials: 'TJ',
+            bgColor: 'bg-blue-500/20',
+            textColor: 'text-blue-400'
+          },
+          {
+            id: 'tx-3',
+            merchant: 'Toko Beras Makmur',
+            category: 'Kebutuhan Pokok',
+            time: 'Kemarin',
+            amount: 120000,
+            status: 'Pending',
+            initials: 'TB',
+            bgColor: 'bg-emerald-500/20',
+            textColor: 'text-emerald-400'
+          },
+          {
+            id: 'tx-4',
+            merchant: 'Kopi Kenangan Rakyat',
+            category: 'Kuliner',
+            time: 'Kemarin',
+            amount: 22000,
+            status: 'Pending',
+            initials: 'KK',
+            bgColor: 'bg-amber-500/20',
+            textColor: 'text-amber-400'
+          }
+        ],
+
+        initApp() {
+          this.$nextTick(() => {
+            this.refreshIcons();
+          });
+        },
+
+        handleEntryBiometricScan() {
+          if (this.entryUnlockScanning || this.entryUnlockSuccess) return;
+          this.entryUnlockScanning = true;
+          this.entryUnlockProgress = 0;
+          this.refreshIcons();
+          
+          let interval = setInterval(() => {
+            if (this.entryUnlockProgress >= 100) {
+              clearInterval(interval);
+              this.entryUnlockProgress = 100;
+              this.entryUnlockSuccess = true;
+              this.entryUnlockScanning = false;
+              this.refreshIcons();
+              
+              setTimeout(() => {
+                this.showEntryUnlockModal = false;
+                this.refreshIcons();
+              }, 1200);
+            } else {
+              this.entryUnlockProgress += 5;
+            }
+          }, 60);
+        },
+
+        refreshIcons() {
+          this.$nextTick(() => {
+            if (typeof lucide !== 'undefined') {
+              lucide.createIcons();
+            }
+          });
+        },
+
+        navigateTo(screenNum) {
+          this.currentScreen = screenNum;
+          this.navHistory.push(screenNum);
+          if (this.navHistory.length > 5) {
+            this.navHistory.shift();
+          }
+          this.refreshIcons();
+        },
+
+        formatRupiah(amount) {
+          return 'Rp ' + amount.toLocaleString('id-ID') + ',00';
+        },
+
+        getCategoryIcon(cat) {
+          switch (cat) {
+            case 'Kebutuhan Pokok': return 'home';
+            case 'Transportasi': return 'laptop';
+            case 'Kuliner': return 'zap';
+            case 'Komunikasi': return 'phone';
+            case 'Kesehatan': return 'shield';
+            default: return 'help-circle';
+          }
+        },
+
+        toggleCategory(cat) {
+          if (this.selectedCategories.includes(cat)) {
+            this.selectedCategories = this.selectedCategories.filter(c => c !== cat);
+          } else {
+            this.selectedCategories.push(cat);
+          }
+        },
+
+        getSelectedTx() {
+          return this.transactions.find(tx => tx.id === this.selectedTxId) || this.transactions[0];
+        },
+
+        printReceipt() {
+          alert("Mencetak Kuitansi Transaksi RDN Offline Ke Printer Terdekat...");
+        },
+
+        selectPreset(merchant, category, amount) {
+          this.customMerchantInput = '';
+          this.customAmountInput = '';
+          this.scanSelectedMerchant = merchant;
+          this.scanSelectedCategory = category;
+          this.scanSelectedAmount = amount;
+        },
+
+        startQRScan() {
+          this.scanState = 'scanning';
+          this.scanProgress = 0;
+          this.refreshIcons();
+          
+          let interval = setInterval(() => {
+            if (this.scanProgress >= 100) {
+              clearInterval(interval);
+              
+              // Pay complete
+              const finalMerchant = this.customMerchantInput.trim() || this.scanSelectedMerchant;
+              const finalAmount = this.customAmountInput.trim() ? Number(this.customAmountInput) : this.scanSelectedAmount;
+              const finalCategory = this.customMerchantInput.trim() ? 'Umum' : this.scanSelectedCategory;
+              
+              const initials = finalMerchant.split(' ')
+                .map(w => w[0])
+                .join('')
+                .substring(0, 2)
+                .toUpperCase() || 'TX';
+
+              const newTx = {
+                id: 'tx-offline-' + Date.now(),
+                merchant: finalMerchant,
+                category: finalCategory,
+                time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB',
+                amount: finalAmount,
+                status: 'Pending',
+                initials: initials,
+                bgColor: this.paymentMode === 'nfc' ? 'bg-amber-500/20' : 'bg-red-500/20',
+                textColor: this.paymentMode === 'nfc' ? 'text-amber-400' : 'text-red-400',
+                method: this.paymentMode === 'nfc' ? 'NFC' : 'QRIS'
+              };
+
+              this.offlineBalance = Math.max(0, this.offlineBalance - finalAmount);
+              this.transactions.unshift(newTx);
+              this.selectedTxId = newTx.id;
+              
+              setTimeout(() => {
+                this.scanState = 'success';
+                this.refreshIcons();
+              }, 200);
+            } else {
+              this.scanProgress += 10;
+            }
+          }, 150);
+        },
+
+        triggerFaceScan() {
+          this.faceScanActive = true;
+          this.faceScanProgress = 0;
+          this.refreshIcons();
+
+          let interval = setInterval(() => {
+            if (this.faceScanProgress >= 100) {
+              clearInterval(interval);
+              this.faceScanActive = false;
+              
+              setTimeout(() => {
+                this.navigateTo(12);
+              }, 400);
+            } else {
+              this.faceScanProgress += 10;
+            }
+          }, 150);
+        },
+
+        triggerSync() {
+          this.syncLoading = true;
+          this.syncProgress = 0;
+          this.syncPhase = 'Menghubungkan';
+          this.syncLogs = [
+            '⚡ MENGINISIASI TAUTAN SINKRONISASI OFFLINE...',
+            '📡 Mencari gerbang jaringan aman Bank Indonesia...'
+          ];
+
+          let interval = setInterval(() => {
+            this.syncProgress += Math.floor(Math.random() * 5) + 3;
+            if (this.syncProgress >= 100) {
+              this.syncProgress = 100;
+              clearInterval(interval);
+              
+              setTimeout(() => {
+                this.transactions.forEach(t => t.status = 'Selesai');
+                this.isSynced = true;
+                this.syncLoading = false;
+              }, 500);
+            }
+
+            if (this.syncProgress >= 15 && this.syncLogs.length === 2) {
+              this.syncLogs.push('✔ [0.6s] Koneksi terhubung ke Gateway BI #925');
+              this.syncLogs.push('🔑 Mencocokkan otorisasi perangkat (Secure Element)...');
+              this.syncPhase = 'Otorisasi Kunci';
+            } else if (this.syncProgress >= 40 && this.syncLogs.length === 4) {
+              this.syncLogs.push('✔ [1.4s] Sandi perangkat valid: HW_LOCKED_KEY OK');
+              this.syncLogs.push('🔓 Melakukan dekripsi ledger lokal lewat sandi AES-256...');
+              this.syncPhase = 'Dekripsi AES-256';
+            } else if (this.syncProgress >= 65 && this.syncLogs.length === 6) {
+              this.syncLogs.push('✔ [2.2s] Dekripsi sukses. Menemukan entri log pending.');
+              this.syncLogs.push('📊 Mengunggah tanda tangan kriptografi ke Server Bank Indonesia...');
+              this.syncPhase = 'Rekonsiliasi';
+            } else if (this.syncProgress >= 85 && this.syncLogs.length === 8) {
+              this.syncLogs.push('✔ [3.1s] Rekonsiliasi ledger berhasil divalidasi oleh Node BI');
+              this.syncLogs.push('💾 Memperbarui database & mencatatkan penyelesaian dana...');
+              this.syncPhase = 'Menyelesaikan';
+            } else if (this.syncProgress >= 100 && this.syncLogs.length === 10) {
+              this.syncLogs.push('🎉 [3.8s] SINKRONISASI BERHASIL! Status transaksi diperbarui ke SELESAI.');
+              this.syncPhase = 'Selesai';
+            }
+          }, 100);
+        },
+
+        handlePerformTransfer() {
+          const amount = Number(this.transferAmountInput) || 0;
+          if (amount <= 0) {
+            alert('Masukkan jumlah transfer yang valid!');
+            return;
+          }
+          if (amount > this.offlineBalance) {
+            alert('Maaf, saldo offline Anda tidak mencukupi untuk melakukan transfer ini!');
+            return;
+          }
+          if (this.transferState === 'transferring') return;
+          this.transferState = 'transferring';
+          this.transferProgress = 0;
+
+          let progress = 0;
+          let interval = setInterval(() => {
+            progress += 10;
+            if (progress >= 100) {
+              progress = 100;
+              clearInterval(interval);
+
+              const target = this.transferCustomDeviceInput.trim() || this.transferTargetDevice;
+
+              const initials = target.split(' ')
+                .map(word => word[0])
+                .join('')
+                .substring(0, 2)
+                .toUpperCase() || 'TR';
+
+              const newTx = {
+                id: 'tx-transfer-' + Date.now(),
+                merchant: 'P2P ke ' + target,
+                category: 'Transfer P2P',
+                time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB',
+                amount: amount,
+                status: 'Pending',
+                initials: initials,
+                bgColor: 'bg-indigo-500/20',
+                textColor: 'text-indigo-400',
+                method: 'Transfer',
+                type: 'expense'
+              };
+
+              this.offlineBalance = Math.max(0, this.offlineBalance - amount);
+              this.transactions.unshift(newTx);
+              this.selectedTxId = newTx.id;
+
+              setTimeout(() => {
+                this.transferState = 'success';
+                this.refreshIcons();
+              }, 300);
+            }
+            this.transferProgress = progress;
+          }, 150);
+        },
+
+        handlePerformReceive() {
+          const amount = Number(this.receiveAmountInput) || 0;
+          if (amount <= 0) {
+            alert('Masukkan jumlah terima saldo yang valid!');
+            return;
+          }
+          if (this.receiveState === 'receiving') return;
+          this.receiveState = 'receiving';
+          this.receiveProgress = 0;
+
+          let progress = 0;
+          let interval = setInterval(() => {
+            progress += 10;
+            if (progress >= 100) {
+              progress = 100;
+              clearInterval(interval);
+
+              const sender = this.receiveCustomSenderInput.trim() || this.receiveSenderName;
+
+              const initials = sender.split(' ')
+                .map(word => word[0])
+                .join('')
+                .substring(0, 2)
+                .toUpperCase() || 'RC';
+
+              const newTx = {
+                id: 'tx-receive-' + Date.now(),
+                merchant: 'P2P dari ' + sender,
+                category: 'Terima P2P',
+                time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB',
+                amount: amount,
+                status: 'Pending',
+                initials: initials,
+                bgColor: 'bg-emerald-500/20',
+                textColor: 'text-emerald-400',
+                method: 'Terima',
+                type: 'income'
+              };
+
+              this.offlineBalance = this.offlineBalance + amount;
+              this.transactions.unshift(newTx);
+              this.selectedTxId = newTx.id;
+
+              setTimeout(() => {
+                this.receiveState = 'success';
+                this.refreshIcons();
+              }, 300);
+            }
+            this.receiveProgress = progress;
+          }, 150);
+        },
+
+        handleSendCSMessage() {
+          if (!this.csInput.trim()) return;
+          const userMsg = this.csInput.trim();
+          const timeStr = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+          
+          this.csChatHistory.push({ sender: 'user', text: userMsg, time: timeStr });
+          this.csInput = '';
+          this.$nextTick(() => {
+            const viewport = document.getElementById('cs-chat-viewport');
+            if (viewport) {
+              viewport.scrollTop = viewport.scrollHeight;
+            }
+          });
+          
+          // Auto reply simulation
+          setTimeout(() => {
+            let replyText = "Terima kasih atas pertanyaannya. Sebagai informasi, jika Anda mengalami kendala transaksi offline RDN, Anda dapat merefresh halaman ini atau memeriksa status Secure Element Anda di Menu Utama. Apakah ada kendala spesifik yang sedang dihadapi?";
+            
+            const textLower = userMsg.toLowerCase();
+            if (textLower.includes('offline') || textLower.includes('cara kerja') || textLower.includes('bagaimana') || textLower.includes('p2p')) {
+              replyText = "Transaksi offline RDN bekerja menggunakan teknologi NFC Contactless Tap. Saldo Anda disimpan sementara secara aman di dalam 'Secure Element' fisik telepon Anda dan siap digunakan bertransaksi p2p dengan aman tanpa memerlukan kuota internet ataupun jaringan seluler!";
+            } else if (textLower.includes('aman') || textLower.includes('enkripsi') || textLower.includes('hack') || textLower.includes('keamanan')) {
+              replyText = "Sistem keamanan RDN sangat tangguh! Kami menggunakan enkripsi kelas militer AES-256-GCM, verifikasi tanda tangan digital asimetris, dan validasi biometrik wajah. Data ledger terenkripsi hanya dapat diakses melalui Secure Element di dalam chipset ponsel Anda.";
+            } else if (textLower.includes('limit') || textLower.includes('jumlah') || textLower.includes('maksimal')) {
+              replyText = "Batas saldo penyimpanan dompet offline RDN Anda di Secure Element adalah maksimal Rp 10.000.000 dengan limit per transaksi sebesar Rp 1.000.000 demi keamanan Anda jika perangkat hilang.";
+            } else if (textLower.includes('hilang') || textLower.includes('ponsel hilang') || textLower.includes('dicuri') || textLower.includes('handphone hilang')) {
+              replyText = "Jangan khawatir jika ponsel Anda hilang! Saldo aman karena dilindungi enkripsi biometrik wajah dan PIN Secure Element. Anda juga dapat memblokir node Anda dan memulihkan saldo Anda di kantor Bank Indonesia terdekat dengan mencocokkan Identitas Nasional (KTP & sidik jari Anda).";
+            } else if (textLower.includes('sinkronisasi') || textLower.includes('sync') || textLower.includes('error')) {
+              replyText = "Untuk sinkronisasi saldo offline Anda kembali ke server utama di Web RDN: saat internet Anda telah aktif kembali, silakan masuk ke dashboard 'Transaksi Offline RDN', lalu klik tombol merah 'Sinkronisasi Ledger Pending ke Server'!";
+            } else if (textLower.includes('nfc') || textLower.includes('tap') || textLower.includes('sender') || textLower.includes('penerima')) {
+              replyText = "NFC (Near Field Communication) adalah metode utama transmisi data transaksi offline RDN. Cukup dekatkan ponsel Anda ke ponsel penerima dengan jarak kurang dari 4 cm untuk menyelesaikan pembayaran dalam waktu kurang dari 1 detik.";
+            } else if (textLower.includes('qris') || textLower.includes('qr') || textLower.includes('scan') || textLower.includes('barcode')) {
+              replyText = "Sangat praktis! Anda juga bisa menggunakan Scan QRIS Offline Dinamis. Cukup tunjukkan kode QR yang digenerate oleh penerima tanpa internet, lalu scan menggunakan kamera untuk mentransfer dana lokal.";
+            } else if (textLower.includes('bantuan') || textLower.includes('cs') || textLower.includes('hubungi') || textLower.includes('kontak') || textLower.includes('telepon')) {
+              replyText = "Anda dapat menghubungi Layanan Pelanggan RDN Hotline di nomor 1500-RDN, atau mengirim email ke support@bi.go.id. Jika mendesak, silakan buat Laporan Kendala pada tab 'Buat Tiket Laporan' di layar ini agar ditangani dalam 15 menit.";
+            } else if (textLower.includes('halo') || textLower.includes('pagi') || textLower.includes('siang') || textLower.includes('sore') || textLower.includes('malam') || textLower.includes('hai')) {
+              replyText = "Halo juga! Selamat datang kembali. Ada kendala teknis atau pertanyaan yang menonjol seputar fitur RDN offline yang bisa saya bantu sekarang?";
+            }
+            
+            this.csChatHistory.push({
+              sender: 'agent',
+              text: replyText,
+              time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB'
+            });
+            this.$nextTick(() => {
+              const viewport = document.getElementById('cs-chat-viewport');
+              if (viewport) {
+                viewport.scrollTop = viewport.scrollHeight;
+              }
+            });
+          }, 1000);
+        },
+
+        handleCreateTicket() {
+          if (!this.ticketSubject.trim() || !this.ticketDescription.trim()) {
+            alert('Harap isi subjek dan deskripsi lengkap laporan kendala!');
+            return;
+          }
+
+          const ticketId = 'TKT-' + Math.floor(10000 + Math.random() * 90000);
+          const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+          const newTicket = {
+            id: ticketId,
+            subject: this.ticketSubject.trim(),
+            category: this.ticketCategory,
+            description: this.ticketDescription.trim(),
+            status: 'Pending',
+            date: dateStr,
+            reply: ''
+          };
+
+          this.csTickets.unshift(newTicket);
+          this.ticketSubject = '';
+          this.ticketDescription = '';
+          this.ticketSuccessMessage = 'Tiket ' + ticketId + ' berhasil dibuat! Laporan Anda sedang dalam proses verifikasi keamanan BI.';
+
+          setTimeout(() => {
+            this.ticketSuccessMessage = '';
+          }, 6000);
+
+          this.refreshIcons();
+        },
+
+        getCurrentDateString() {
+          return new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+        }
+      };
+    }
+  </script>
+</body>
+</html>
